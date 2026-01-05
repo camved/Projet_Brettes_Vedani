@@ -18,6 +18,11 @@ package body SGF is
       actual_path : Unbounded_String ;
       rep_parent : file ;
    begin
+
+      if Dossier_Courant = null then
+         raise Pointeur_Nul with "Error : no current file";
+      end if;
+
       rep_parent := file ;
       if root.rep_parent = null then
          actual_path := "/";

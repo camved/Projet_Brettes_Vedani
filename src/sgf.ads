@@ -19,6 +19,8 @@ package SGF is
    
    end record;
 
+   Pointeur_Nul : exception;
+
    procedure initRacine (root: in out file);
 
    function getActualFile(actual_file : in P_file) return Unbounded_String;
