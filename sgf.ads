@@ -4,7 +4,7 @@ with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
 
 package SGF is 
 
-   type file;
+   type file; --Déclaration partielle pour permettre le pointeur suivant
 
    type P_file is access file;
 
