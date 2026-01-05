@@ -14,8 +14,4 @@ package body SGF is
 
    end initRacine;
 
-begin
-
-   initRacine (root);
-
 end SGF;
