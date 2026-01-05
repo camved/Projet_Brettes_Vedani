@@ -29,5 +29,14 @@ package SGF is
 
    end initRacine;
 
+   function getActualFile(actual_file : in file ; actual_name : out String) is
+   begin
+   end getActualFile;
+
+
+   function getPath( ) is
+   begin
+   end getPath;
+
 end SGF;
 
