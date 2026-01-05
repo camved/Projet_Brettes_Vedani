@@ -8,6 +8,7 @@
 
     [] Penser à la privacy/limitation des types
 
+
 # Déclaration des types
 
     file : enregistrement avec 
@@ -22,6 +23,8 @@
     pwd : enregistrement avec
     - pointeur vers file parent
     - string
+
+plus qu'un main après, il vaudrait mieux partir sur un module SGF, avec un pointeur où l'utilisateur se trouve actuellement.
 
 # Sous-programmes à faire
 
