@@ -13,5 +13,14 @@ package SGF is
    
    end record;
 
+   procedure initRacine (root: in out file) is
+
+      nom := "/";
+      droit_access := "rwxrwxrwx"
+      taille := 1; --Volume total divisé par 10Ko pour qu'on ne manie qu'une unité simple
+      
+
+
+
 end SGF;
 
