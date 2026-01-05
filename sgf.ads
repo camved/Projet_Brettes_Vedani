@@ -4,6 +4,8 @@ with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
 
 package SGF is 
 
+   type file;
+
    type P_file is access file;
 
    type file is record
@@ -17,17 +19,7 @@ package SGF is
    
    end record;
 
-   procedure initRacine (root: in out file) is
-   begin
-
-      root.nom := To_Unbounded_String("/");
-      root.droits_acces := "rwxrwxrwx";
-      root.taille := 1; --Volume total divisé par 10Ko pour qu'on ne manie qu'une unité simple
-      root.rep_parent := null;
-      root.L_enfant := null;
-      root.isRepo := True;
-
-   end initRacine;
+   procedure initRacine (root: in out file);
 
 end SGF;
 
