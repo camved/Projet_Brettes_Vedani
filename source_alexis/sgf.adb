@@ -14,9 +14,9 @@ package body SGF is
 
    end initRacine;
 
-   procedure createFile () is
-   begin
+   --  procedure createFile () is
+   --  begin
    
-   end createFile;
+   --  end createFile;
 
 end SGF;
