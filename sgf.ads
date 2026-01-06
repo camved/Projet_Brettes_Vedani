@@ -19,7 +19,20 @@ package SGF is
    
    end record;
 
+   --Nom : initRacine
+   --Objectif : Créer un répertoire racine / vide et accessible par n'importe qui
+   --Paramètres : root in out, type file
+   --Pré : pas de répertoire racine créé
+   --Post : un répertoire racine créé
+   --Test : être en mesure de se déplacer dans le répertoire racine avec cd une fois le répertoire racine créé
    procedure initRacine (root: in out file);
+
+   --Nom : createFile
+   --Objectif : Créer un fichier dont on choisit le nom, les droits et le type (répertoire ou fichier simple) à l'endroit de notre choix.
+   --Paramètres :
+   --Pré : pas de fichier appelé pareil créé à cet endroi
+   --Post : répertoire parent est bien un répertoire (file.rep_parent.all.isRepo = True)
+   procedure createFile (pwd: in out file; created: out file);
 
 end SGF;
 
