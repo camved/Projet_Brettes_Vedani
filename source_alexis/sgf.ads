@@ -1,7 +1,8 @@
 with Ada.Text_IO;                use Ada.Text_IO;
 with Ada.Integer_Text_IO;        use Ada.Integer_Text_IO;
 with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
-
+with System;
+with Ada.Strings.Fixed;
 package SGF is 
 
    type file; --Déclaration partielle pour permettre le pointeur suivant
@@ -14,7 +15,7 @@ package SGF is
       droits_acces: String (1..9);
       taille: Integer;
       rep_parent: P_file;
-      ID: String;
+      ID: System.Address;
       L_enfant: P_file;
       isRepo: Boolean;
    
@@ -35,7 +36,7 @@ package SGF is
    --Post :
       -- répertoire parent est bien un répertoire (file.rep_parent.all.isRepo = True)
       -- fichier fils bien créé et conforme à ce qui est demandé
-   procedure createFile (fichier: in out file; created: out file);
+   procedure createFile (nom: in out String; created: out file);
 
    --Nom : createRepo
    --Objectif : Créer un répertoire dont on choisit le nom et les droits à l'endroit de notre choix.createFile (pwd : in out file, created : out file)
