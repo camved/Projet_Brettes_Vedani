@@ -14,6 +14,7 @@ package SGF is
       droits_acces: String (1..9);
       taille: Integer;
       rep_parent: P_file;
+      ID: String;
       L_enfant: P_file;
       isRepo: Boolean;
    
@@ -28,11 +29,53 @@ package SGF is
    procedure initRacine (root: in out file);
 
    --Nom : createFile
-   --Objectif : Créer un fichier dont on choisit le nom, les droits et le type (répertoire ou fichier simple) à l'endroit de notre choix.
+   --Objectif : Créer un fichier dont on choisit le nom, les droits à l'endroit de notre choix.
    --Paramètres :
-   --Pré : pas de fichier appelé pareil créé à cet endroi
-   --Post : répertoire parent est bien un répertoire (file.rep_parent.all.isRepo = True)
-   procedure createFile (pwd: in out file; created: out file);
+   --Pré : pas de fichier appelé pareil créé dans le répertoire père
+   --Post :
+      -- répertoire parent est bien un répertoire (file.rep_parent.all.isRepo = True)
+      -- fichier fils bien créé et conforme à ce qui est demandé
+   procedure createFile (fichier: in out file; created: out file);
+
+   --Nom : createRepo
+   --Objectif : Créer un répertoire dont on choisit le nom et les droits à l'endroit de notre choix.createFile (pwd : in out file, created : out file)
+   --Paramètres : 
+   --Pré : pas de répertoire appelé pareil créé dans le répertoire père
+   --Post :
+      -- répertoire parent est bien un répertoire (file.rep_parent.all.isRepo = True)
+      -- répertoire fils bien créé et conforme à ce qui est demandé
+   procedure createRepo (repo: in out file);
+
+   --Nom : removeFile
+   --Objectif : Supprimer un fichier existant et supprime récursivement tout son contenu selon l'appel fait
+   --Paramètre : 
+      -- fichier : in string
+   --Pré : fichier existant
+   --Post : 
+      -- répertoire père du fichier ne contient plus le fichier
+      -- SI APPEL AVEC -r LES FICHIERS ET REPERTOIRES CONTENUS SONT SUPPRIMES
+   --Test : afficher le contenu du répertoire père
+   procedure removeFile (fichier: in String);
+
+   --Nom : getFileID
+   --Objectif : Renvoie le pointeur caractérisant un fichier cherché à partir d'un string
+   --Paramètre :
+      -- fichier : in String
+      -- address : out String
+      -- isRepo : out Boolean
+   --Pré : fichier existant
+   --Post : Adresse pointe sur le fichier
+   function getFileID (fichier: in String; address: out String; isRepo: out Boolean);
+
+   --Nom : changePwd
+   --Objectif : Déplacer le pwd vers le répertoire demandé
+   --Paramètre : 
+      -- fichier : in String
+   -- Pré : 
+      -- répertoire existant
+      -- isRepo = True
+   -- Post : current_repo = adresse du fichier cherché
+   procedure changePwd (fichier: in String; current_file: in out String);
 
 end SGF;
 
