@@ -19,7 +19,8 @@ package SGF is
    
    end record;
 
-   Pointeur_Nul : exception;
+   
+   VOID_POINTER_ERROR : exception;
 
    procedure initRacine (root: in out file);
 

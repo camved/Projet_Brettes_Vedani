@@ -16,8 +16,6 @@ package body SGF is
 
    function getActualPath(actual_file : in P_file) return Unbounded_String is
 
-   VOID_POINTER_ERROR : EXCEPTION ;
-
    begin
 
       if actual_file = null then
@@ -30,7 +28,7 @@ package body SGF is
       else
          return getActualPath(actual_file.Rep_Parent) & "/" & actual_file.Nom;
       end if;
-   end getActualFile;
+   end getActualPath;
 
 
 end SGF;
