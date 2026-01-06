@@ -9,6 +9,7 @@
 
     [] Penser à la privacy/limitation des types
 
+
 # Déclaration des types
 
     file : enregistrement avec 
@@ -20,6 +21,8 @@
     - liste enfant : pointeurs vers
     - is_repository : boolean
 
+
+plus qu'un main après, il vaudrait mieux partir sur un module SGF, avec un pointeur où l'utilisateur se trouve actuellement.
 
 # Sous-programmes à faire
 
