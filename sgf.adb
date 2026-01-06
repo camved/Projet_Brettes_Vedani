@@ -14,4 +14,11 @@ package body SGF is
 
    end initRacine;
 
+<<<<<<< HEAD
+=======
+begin
+
+   initRacine (root);
+
+>>>>>>> 8b53548 (Created adb and ads)
 end SGF;

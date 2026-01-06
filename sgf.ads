@@ -4,7 +4,11 @@ with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
 
 package SGF is 
 
+<<<<<<< HEAD
    type file; --Déclaration partielle pour permettre le pointeur suivant
+=======
+   type file;
+>>>>>>> 8b53548 (Created adb and ads)
 
    type P_file is access file;
 
