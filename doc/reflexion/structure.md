@@ -21,6 +21,7 @@
     - is_repository : boolean
 
 
+
 # Sous-programmes à faire
 
     I. 
@@ -37,3 +38,7 @@
 
 
  /nom1/nom2/nom3
+    pwd : enregistrement avec
+    - pointeur vers file parent
+    - string
+
