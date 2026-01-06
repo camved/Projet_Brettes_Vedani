@@ -14,21 +14,23 @@ package body SGF is
 
    end initRacine;
 
-   function getActualFile(actual_file : in P_file) return Unbounded_String is
-      actual_path : Unbounded_String ;
-      rep_parent : file ;
+   function getActualPath(actual_file : in P_file) return Unbounded_String is
+
+   VOID_POINTER_ERROR : EXCEPTION ;
+
    begin
 
-      if Dossier_Courant = null then
-         raise Pointeur_Nul with "Error : no current file";
+      if actual_file = null then
+         raise VOID_POINTER_ERROR with "Error : no current file";
       end if;
-
-      rep_parent := file ;
-      if root.rep_parent = null then
-         actual_path := "/";
+      if actual_file.Rep_Parent = null then
+         return To_Unbounded_String("/");
+      elsif actual_file.Rep_Parent.Rep_Parent = null then
+         return "/" & actual_file.Nom;
       else
-         P_file;   
+         return getActualPath(actual_file.Rep_Parent) & "/" & actual_file.Nom;
       end if;
    end getActualFile;
+
 
 end SGF;
