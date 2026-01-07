@@ -17,7 +17,20 @@ package body SGF is
 
    procedure createFile (nom: in out String; created: out file) is
    begin
-   
+
    end createFile;
+
+   procedure changePwd (fichier: in String; current_file : in out String) is
+   
+      cible: file;
+
+   begin
+   
+      if fichier'Length > 0 then
+         if fichier(fichier'First) = '/' then
+            
+         elsif (fichier(fichier'First) >= 'A' and fichier(fichier'First) <= 'z') or (fichier(fichier'First) = '.') then
+
+   end changePwd;
 
 end SGF;

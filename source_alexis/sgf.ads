@@ -3,6 +3,7 @@ with Ada.Integer_Text_IO;        use Ada.Integer_Text_IO;
 with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
 with System;
 with Ada.Strings.Fixed;
+with Ada.Characters.Handling;    use Ada.Characters.Handling;
 package SGF is 
 
    type file; --Déclaration partielle pour permettre le pointeur suivant
@@ -77,6 +78,14 @@ package SGF is
       -- isRepo = True
    -- Post : current_repo = adresse du fichier cherché
    procedure changePwd (fichier: in String; current_file: in out String);
+
+   --Nom : parsePath
+   --Objectif : Renvoyer l'adresse du répertoire ou du fichier visé
+   --Paramètre :
+      -- fichier : in String
+      -- ID : out Address
+   --Pré : 
+      --Adresse valide rentrée
 
 end SGF;
 
