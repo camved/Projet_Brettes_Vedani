@@ -13,13 +13,14 @@ package body SGF is
       root.rep_parent := null;
       root.L_enfant := new File_List_Pkg.List;
       root.isRepo := True;
+      
 
    end initRacine;
 
-   procedure createFile (nom: in out String; created: out file; isRepo : in Boolean) is
+   procedure createFile (nom: in String; created: out file; isRepo : in Boolean) is
       pointer_created : P_file;
    begin
-
+   pointer_created := new file;
    pointer_created.nom := To_Unbounded_String(nom);
    pointer_created.droits_acces := "rwxrwxrwx";
    pointer_created.taille := 1;
