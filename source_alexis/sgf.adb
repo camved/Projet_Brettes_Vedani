@@ -5,18 +5,32 @@ package body SGF is
    procedure initRacine (root: in out file) is
    begin
 
-      root.nom := To_Unbounded_String("/");
+      root.nom := To_Unbounded_String("");
       root.droits_acces := "rwxrwxrwx";
       root.taille := 1; --Volume total divisé par 10Ko pour qu'on ne manie qu'une unité simple
+      root.ID := root'Address;
       root.rep_parent := null;
       root.L_enfant := null;
       root.isRepo := True;
 
    end initRacine;
 
-   procedure createFile () is
+   procedure createFile (nom: in out String; created: out file) is
+   begin
+
+   end createFile;
+
+   procedure changePwd (fichier: in String; current_file : in out String) is
+   
+      cible: file;
+
    begin
    
-   end createFile;
+      if fichier'Length > 0 then
+         if fichier(fichier'First) = '/' then
+            
+         elsif (fichier(fichier'First) >= 'A' and fichier(fichier'First) <= 'z') or (fichier(fichier'First) = '.') then
+
+   end changePwd;
 
 end SGF;

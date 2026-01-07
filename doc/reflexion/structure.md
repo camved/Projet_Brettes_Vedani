@@ -20,6 +20,8 @@
     - liste enfant : pointeurs vers
     - is_repository : boolean
 
+<<<<<<< HEAD
+
 
 # Sous-programmes à faire
 
@@ -37,3 +39,26 @@
 
 
  /nom1/nom2/nom3
+    pwd : enregistrement avec
+    - pointeur vers file parent
+    - string
+
+=======
+
+# Sous-programmes à faire
+
+    I. 
+        getCheminAbsolu : fonction
+        getName : fonction 
+        getParent : fonction
+        initRacine : procédure
+        getPwd : fonction
+        exists : fonction
+
+    II. 
+        getSpace : fonction qui affiche l'espace disponible restant
+
+
+
+ /nom1/nom2/nom3
+>>>>>>> 8b53548 (Created adb and ads)
