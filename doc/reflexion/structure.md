@@ -21,11 +21,6 @@
     - liste enfant : pointeurs vers
     - is_repository : boolean
 
-<<<<<<< HEAD
-
-
-plus qu'un main après, il vaudrait mieux partir sur un module SGF, avec un pointeur où l'utilisateur se trouve actuellement.
-
 # Sous-programmes à faire
 
     I. 
@@ -45,23 +40,3 @@ plus qu'un main après, il vaudrait mieux partir sur un module SGF, avec un poin
     pwd : enregistrement avec
     - pointeur vers file parent
     - string
-
-=======
-
-# Sous-programmes à faire
-
-    I. 
-        getCheminAbsolu : fonction
-        getName : fonction 
-        getParent : fonction
-        initRacine : procédure
-        getPwd : fonction
-        exists : fonction
-
-    II. 
-        getSpace : fonction qui affiche l'espace disponible restant
-
-
-
- /nom1/nom2/nom3
->>>>>>> 8b53548 (Created adb and ads)
