@@ -64,18 +64,27 @@ package SGF is
 
    --Nom : rename_or_move (rm)
    --Objectif : change le nom ou déplace le fichier
-   --Paramètres : modified_file in, type P_file
-   --Pré : modified_file existe dans le sgf
+   --Paramètres : modified_file in, type P_file, new_path in, type String
+   --Pré : modified_file existe dans le sgf et le chemin est valide
    --Post : le fichier est changé de place ou renommé
-   --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
-   procedure rename_or_move( modified_file : in File);
+   --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé, et quelle ait changé si changement de nom ou de repertoire suf si le chemin donné est erroné
+   procedure rename_or_move( modified_file : in File; new_path : in string);
 
-   --Nom : getCurrentFile (pwd)
-   --Objectif : Retourner le chemin absolu du fichier actuelle
-   --Paramètres : current_file in out, type P_file
-   --Pré : current_file existe dans le sgf
-   --Post : le chemin absolu du fichier actuel est retourné
-   --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
+   --Nom : copy_file_or_folder (cp)
+   --Objectif : copier le fichier ou rep dans un autre repertoire
+   --Paramètres : copied in, type P_file, path in String
+   --Pré : copied existe dans le  et le chemin est valide
+   --Post : le fichier est copié au bon endroit
+   --Test : être en mesure de rverifier que le fichier copié est au bonne endroit et identique au premier
    procedure copy_file_or_folder (copied : in File; path : in String);
+
+   --Nom : assert_same_file (==)
+   --Objectif : ccomparer deux fichier et vérifier qu'il soit identique ou non
+   --Paramètres : copied in, type P_file, path in String
+   --Pré : copied existe dans le  SGF et le chemin est valide 
+   --Post : le fichier  1 est comparé au fichier 2
+   --Test : être en mesure de rverifier que le fichier 1 est égale à lui-même et pas à un autre
+   procedure assert_same_file (file1 : in File; file2 : in File);
+
 
 end SGF;
