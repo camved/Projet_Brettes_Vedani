@@ -29,7 +29,9 @@ package SGF is
 
    
    VOID_POINTER_ERROR : exception;
-   VOID_CHILD_EROOR : exception;
+   VOID_CHILD_ERROR : exception;
+   NOT_IN_THIS_DIRECTORY : exception;
+   NOT_A_DIRECTORY : exception;
 
    --Nom : initRacine
    --Objectif : Créer un répertoire racine / vide et accessible par n'importe qui
@@ -61,6 +63,9 @@ package SGF is
 
    function get_current_directory return P_file;
 
+   procedure change_directory(name_file_to_go : in String);
+
+   procedure display_file(file_to_show : in P_file);
 
    --  --Nom : changeSize
    --  --Objectif : Change la taille du fichier 

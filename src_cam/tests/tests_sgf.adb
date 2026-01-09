@@ -54,7 +54,21 @@ begin
    current := SGF.get_current_directory;
 
    Put(To_String(SGF.getCurrentPath(current)));
+   Put_Line("SUCCES : chemin trouvé !");
 
+   --  SGF.change_directory("Raptor");
+   --  SGF.createFile ("Raptor_file", False);
+   --  SGF.change_directory("Raptor_file");
+   SGF.createFile ("Raptor_directory", True);
+   SGF.change_directory("Raptor_directory");
+   
+   Put_Line ("Test pwd sans le chemin");
+   current := SGF.get_current_directory;
+   Put(To_String(SGF.getCurrentPath(current)));
+   SGF.createFile("raptor_baby",True);
+   SGF.change_directory("raptor_baby");
+   current := SGF.get_current_directory;
+   SGF.display_file(current);
 
 
 end tests_sgf;
