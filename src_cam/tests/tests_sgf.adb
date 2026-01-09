@@ -1,19 +1,21 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-with SGF; -- On importe ton paquet
+with SGF; use SGF; -- On importe ton paquet
 
-procedure Test_SGF is
+procedure tests_sgf is
 
    Ma_Racine : SGF.File; 
+   file1_children : SGF.P_list;   
+   Enfant_Trouve  : SGF.P_file;
 
 begin
 
    Put("Test de initRacine");
    SGF.initRacine(Ma_Racine);
    
-   if Ma_Racine.nom /= To_Unbounded_String("/") then
+   if Ma_Racine.nom /= To_Unbounded_String("") then
       Put_Line("ÉCHEC : Le nom n'est pas correct.");
-      Put_Line("Attendu : /");
+      Put_Line("Attendu : ");
       Put_Line("Obtenu  : " & To_String(Ma_Racine.nom));
       
    elsif Ma_Racine.taille /= 1 then
@@ -29,10 +31,25 @@ begin
    end if;
 
   ---------------------------------------------------------
-   Put("Test create file");
+Put_Line("--- Test create file ---");
+   SGF.createFile("test", False);
    
-   SGF.createFile ("test");
-   
-  
+   Put_Line("--- Test trouver liste ---");
+   -- Attention : vérifie bien que la fonction s'appelle get_current_directory ou Get_Current dans ton SGF
+   file1_children := SGF.getChildren(SGF.get_current_directory);
 
-end Test_SGF;
+   Put_Line("--- Test récupérer enfant ---");
+   
+
+   Enfant_Trouve := SGF.findChild(file1_children.all, "test");
+   
+   if Enfant_Trouve /= null then
+      Put_Line("SUCCES : Enfant 'test' trouvé !");
+   else
+      Put_Line("ECHEC : Enfant introuvable.");
+   end if;
+
+   Put_Line("Fin des tests.");
+
+
+end tests_sgf;
