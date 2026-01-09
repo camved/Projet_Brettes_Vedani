@@ -5,8 +5,9 @@ with SGF; use SGF; -- On importe ton paquet
 procedure tests_sgf is
 
    Ma_Racine : SGF.File; 
-   file1_children : SGF.P_list;   
+   root_children : SGF.P_list;   
    Enfant_Trouve  : SGF.P_file;
+   current : SGF.P_File;
 
 begin
 
@@ -31,25 +32,29 @@ begin
    end if;
 
   ---------------------------------------------------------
-Put_Line("--- Test create file ---");
+   Put_Line("--- Test create file ---");
    SGF.createFile("test", False);
-   
+   SGF.createFile("trucs", False);
+
    Put_Line("--- Test trouver liste ---");
-   -- Attention : vérifie bien que la fonction s'appelle get_current_directory ou Get_Current dans ton SGF
-   file1_children := SGF.getChildren(SGF.get_current_directory);
+   root_children := SGF.getChildren(SGF.get_current_directory);
 
    Put_Line("--- Test récupérer enfant ---");
-   
 
-   Enfant_Trouve := SGF.findChild(file1_children.all, "test");
-   
+   Enfant_Trouve := SGF.findChild(root_children.all, "test");
+
    if Enfant_Trouve /= null then
       Put_Line("SUCCES : Enfant 'test' trouvé !");
    else
       Put_Line("ECHEC : Enfant introuvable.");
    end if;
 
-   Put_Line("Fin des tests.");
+   Put_Line ("Test pwd sans le chemin");
+   
+   current := SGF.get_current_directory;
+
+   Put(To_String(SGF.getCurrentPath(current)));
+
 
 
 end tests_sgf;

@@ -50,7 +50,7 @@ package body SGF is
          raise VOID_POINTER_ERROR with "Error : no current file";
       end if;
       if pwd_file.Rep_Parent = null then
-         return pwd_file.nom;
+         return To_Unbounded_String ("/");
       elsif SGF.current_directory.all.Rep_Parent = null then
          return To_Unbounded_String ("/");
       else
@@ -78,13 +78,10 @@ package body SGF is
          raise VOID_CHILD_EROOR with "Error : no child in this directory";
       else
          for child_element of children_list loop
-            if To_String(child_element.all.nom) = child_to_find then
+            if To_String(child_element.nom) = child_to_find then
                return child_element;
-            else 
-               return null;
             end if;
          end loop;
-
          return null;
       end if;
    end findChild;
