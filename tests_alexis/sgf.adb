@@ -1,7 +1,4 @@
-package body SGF is
-
-   root: file;
-   current_directory: P_file;
+package body sgf is
 
    procedure initRacine (root: in out file) is
       pointer_root : P_file;
@@ -19,6 +16,8 @@ package body SGF is
       
    end initRacine;
 
+------------------------------------------------------------------------------------------------
+
    function findRoot (current_directory: in P_file) return P_file is
 
       VOID_POINTER_ERROR: exception;
@@ -35,28 +34,57 @@ package body SGF is
    
    end findRoot;
 
-   function parseAbsolute (fichier: in String; current_directory: in P_file) return P_file is
+-------------------------------------------------------------------------------------------------
 
-      tempDir: P_file; --doit prendre la valeur de la racine au début
+   procedure createFile (nom: in String; isRepo : in Boolean) is
 
+      pointer_created : P_file;
+   
    begin
+   
+      pointer_created := new file;
+      pointer_created.nom := To_Unbounded_String(nom);
+      pointer_created.droits_acces := "rwxrwxrwx";
+      pointer_created.taille := 1;
+      pointer_created.rep_parent := current_directory;
+      pointer_created.L_enfant := null;
+      pointer_created.isRepo := isRepo;
 
-      tempDir := findRoot(current_directory);
-      if fichier'Length > 1 then
-         declare
-            -- extrait la partie après le / initial
-            Reste : constant String := fichier(fichier'First + 1..fichier'last);
-         
-         begin
-
-            return parseRelative (Reste, tempDir);
-         
-         end;
-      else -- le chemin est juste "/"
-         return tempDir;
+      if isRepo then
+         pointer_created.L_enfant := new File_List_Pkg.List; -- Liste reste vide tant que pas d'enfant et rÃ©pertoire
+      else
+         pointer_created.L_enfant := null; -- si fichier
       end if;
 
-   end parseAbsolute;
+      pointer_created.rep_parent.all.L_enfant.all.Append(pointer_created);
+
+   end createFile;
+
+--------------------------------------------------------------------------------------------------
+
+   procedure change_directory(name_file_to_go : in String) is
+
+      current : P_file;
+      next_dir : P_file;
+      NOT_IN_THIS_DIRECTORY: exception;
+      NOT_A_DIRECTORY: exception;
+
+   begin
+   
+      current := SGF.current_directory;
+      next_dir := SGf.findChild(current.L_enfant.all, name_file_to_go);
+
+      if next_dir = null then 
+         raise NOT_IN_THIS_DIRECTORY with "Error : no such directories in this directory";
+      elsif not(next_dir.isRepo) then
+         raise NOT_A_DIRECTORY with "Error : not a directory";
+      else
+         SGF.current_directory := next_dir;
+      end if; 
+   
+   end change_directory;
+
+---------------------------------------------------------------------------------------------------
 
    function  parseRelative (fichier: in String; current_directory: in P_file) return P_file is
 
@@ -81,6 +109,9 @@ package body SGF is
          Reste: constant String := (if First_Slash = 0 then "" else fichier(First_Slash+1.. fichier'Last));
 
          Prochain : P_file;
+
+         VOID_INVALID_PATH: exception;
+         VOID_ROOT_LOCATION: exception;
 
          begin
 
@@ -117,9 +148,36 @@ package body SGF is
                   return parseRelative(Reste, Prochain);
                end if;
             end if;
-            end;
+         end;
 
    end parseRelative;
+
+---------------------------------------------------------------------------------------------------
+
+   function parseAbsolute (fichier: in String; current_directory: in P_file) return P_file is
+
+      tempDir: P_file; --doit prendre la valeur de la racine au début
+
+   begin
+
+      tempDir := findRoot(current_directory);
+      if fichier'Length > 1 then
+         declare
+            -- extrait la partie après le / initial
+            Reste : constant String := fichier(fichier'First + 1..fichier'last);
+         
+         begin
+
+            return parseRelative (Reste, tempDir);
+         
+         end;
+      else -- le chemin est juste "/"
+         return tempDir;
+      end if;
+
+   end parseAbsolute;
+
+--------------------------------------------------------------------------------------------------
 
    function parsePath (fichier: in String; current_directory: in P_file) return P_file is
 
@@ -143,46 +201,34 @@ package body SGF is
 
    end parsePath;
 
-   procedure createFile (nom: in String; isRepo : in Boolean) is
+   -----------------------------------------------------------------------------------------------
 
-      pointer_created : P_file;
-   
+   function findRoot (current_directory: in P_file) return P_file is
+
+      VOID_POINTER_ERROR: exception;
+
    begin
-   
-      pointer_created := new file;
-      pointer_created.nom := To_Unbounded_String(nom);
-      pointer_created.droits_acces := "rwxrwxrwx";
-      pointer_created.taille := 1;
-      pointer_created.rep_parent := current_directory;
-      pointer_created.L_enfant := null;
-      pointer_created.isRepo := isRepo;
 
-      if isRepo then
-         pointer_created.L_enfant := new File_List_Pkg.List; -- Liste reste vide tant que pas d'enfant et rÃ©pertoire
+      if current_directory = null then
+         raise VOID_POINTER_ERROR;
+      elsif current_directory.all.rep_parent = null then
+         return current_directory;
       else
-         pointer_created.L_enfant := null; -- si fichier
+         return findRoot(current_directory.all.rep_parent);
       end if;
+   
+   end findRoot;
 
-      pointer_created.rep_parent.all.L_enfant.all.Append(pointer_created);
+--------------------------------------------------------------------------------------------------
 
-   end createFile;
-
-   function getChildren(adress_file : in P_file) return P_list is 
-   begin
-
-      if adress_file.all.L_enfant.Is_Empty then 
-         raise VOID_CHILD_ERROR with "Error : no child in this directory";
-      else 
-         return adress_file.all.L_enfant;
-      end if;
-
-   end getChildren;
- 
    function findChild(children_list : in List; child_to_find : in String) return P_file is
+   
+      VOID_CHILD_ERROR: exception;
+
    begin
 
       if children_list.Is_Empty then 
-         raise VOID_CHILD_EROOR;
+         raise VOID_CHILD_ERROR;
       else
          for child_element of children_list loop
             if To_String(child_element.all.nom) = child_to_find then
@@ -195,31 +241,6 @@ package body SGF is
 
    end findChild;
 
-   function get_current_directory return P_file is
-   begin
-
-      return current_directory;
-   
-   end get_current_directory;
-
-   procedure change_directory(name_file_to_go : in String) is
-
-      current : P_file;
-      next_dir : P_file;
-
-   begin
-   
-      current := SGF.current_directory;
-      next_dir := SGf.findChild(current.L_enfant.all, name_file_to_go);
-
-      if next_dir = null then 
-         raise NOT_IN_THIS_DIRECTORY with "Error : no such directories in this directory";
-      elsif not(next_dir.isRepo) then
-         raise NOT_A_DIRECTORY with "Error : not a directory";
-      else
-         SGF.current_directory := next_dir;
-      end if; 
-   
-   end change_directory;
+---------------------------------------------------------------------------------------------------
 
 end SGF;
