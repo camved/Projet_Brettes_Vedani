@@ -5,6 +5,7 @@ with System;                     use System;
 with Ada.Strings.Fixed;
 with Ada.Characters.Handling;    use Ada.Characters.Handling;
 with Ada.Containers.Doubly_Linked_Lists; 
+with Ada.Containers;             use Ada.Containers;
 
 package sgf is 
 
@@ -40,6 +41,8 @@ package sgf is
    --Test : être en mesure de se déplacer dans le répertoire racine avec cd une fois le répertoire racine créé
    procedure initRacine (root: in out file);
 
+----------------------------------------------------------------------------------------------
+
    --Nom : createFile
    --Objectif : Créer un fichier dont on choisit le nom, les droits à l'endroit de notre choix.
    --Paramètres :
@@ -72,7 +75,7 @@ package sgf is
       -- répertoire existant
       -- isRepo = True
    -- Post : current_directory = adresse du fichier cherché
-   procedure change_directory(name_file_to_go : in String);
+   procedure changeDirectory(name_file_to_go : in String);
 
 ------------------------------------------------------------------------------------------------
 
@@ -114,7 +117,7 @@ package sgf is
    --Exceptions : 
       --=> EMPTY_STRING
       --=> INVALID_FIRST_CHAR
-   function parsePath (fichier: in String) return P_file;
+   function parsePath (fichier: in String; current_directory: in P_file) return P_file;
 
 -------------------------------------------------------------------------------------------------
 
@@ -136,5 +139,45 @@ package sgf is
    function findChild (children_list: in List; child_to_find: in String) return P_file;
 
 ---------------------------------------------------------------------------------------------------
+
+   --Nom : getCurrentPath (pwd)
+   --Objectif : Retourner le chemin absolu du fichier actuelle
+   --Paramètres : current_file in, type P_file
+   --Pré : current_file existe dans le sgf
+   --Post : le chemin absolu du fichier actuel est retourné
+   --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
+   function getCurrentPath(pwd_file : in P_file) return Unbounded_String;
+
+--------------------------------------------------------------------------------------------------
+
+   --Nom : getChildren
+   --Objectif : Retourner le pointeur des enfants 
+   --Paramètres : adress_file in, type P_file
+   --Pré : le fichier pointé par adress_file existe, le pointeur de la liste d'enfant existe  
+   --Post : le pointeur de la liste d'enfant est retourné
+   --Test : être en mesure de retourner l'adresse de la liste enfant.
+   function getChildren(adress_file : in P_file) return P_list;
+
+-------------------------------------------------------------------------------------------------------
+
+   --Nom: displayFile
+   --Objectif: afficher les attributs du fichier courant
+   --Paramètres:
+      --current_directory: in P_file
+   --Pré : le fichier existe
+   --Post : bien affiché
+   procedure displayFile(current_directory : in P_file);
+
+-------------------------------------------------------------------------------------------------------
+
+   --Nom : displayFileContent (ls)
+   --Objectif : afficher tous le contenus du repertoire actuel
+   --Paramètres :
+      --file_to_show: in P_file
+   --Pré : current_file existe dans le sgf
+   --Post : tout le contenu s'affiche
+   --Test : tout s'affiche à l'écran après l'appel de la fonction
+   procedure displayFileContent(current_directory: in P_file);
+
 
 end SGF;

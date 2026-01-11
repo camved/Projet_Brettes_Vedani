@@ -62,7 +62,7 @@ package body sgf is
 
 --------------------------------------------------------------------------------------------------
 
-   procedure change_directory(name_file_to_go : in String) is
+   procedure changeDirectory(name_file_to_go : in String) is
 
       current : P_file;
       next_dir : P_file;
@@ -82,7 +82,7 @@ package body sgf is
          SGF.current_directory := next_dir;
       end if; 
    
-   end change_directory;
+   end changeDirectory;
 
 ---------------------------------------------------------------------------------------------------
 
@@ -138,7 +138,7 @@ package body sgf is
             -- cas général
             else
 
-               Prochain := findChild(current_directory.L_enfant, Segment);
+               Prochain := findChild(current_directory.L_enfant.all, Segment);
 
                if Prochain = null then
                   raise VOID_INVALID_PATH with "Erreur : le chemin demandé n'existe pas";
@@ -191,33 +191,15 @@ package body sgf is
          raise EMPTY_STRING;
       else
          if fichier(fichier'First) = '/' then
-            return(parseAbsolute(fichier)); 
+            return(parseAbsolute(fichier, current_directory)); 
          elsif (fichier(fichier'First) = '.') or Is_Letter (fichier(fichier'First)) then
-            return(parseRelative(fichier));
+            return(parseRelative(fichier, current_directory));
          else
             raise INVALID_FIRST_CHAR;
          end if;
       end if;
 
    end parsePath;
-
-   -----------------------------------------------------------------------------------------------
-
-   function findRoot (current_directory: in P_file) return P_file is
-
-      VOID_POINTER_ERROR: exception;
-
-   begin
-
-      if current_directory = null then
-         raise VOID_POINTER_ERROR;
-      elsif current_directory.all.rep_parent = null then
-         return current_directory;
-      else
-         return findRoot(current_directory.all.rep_parent);
-      end if;
-   
-   end findRoot;
 
 --------------------------------------------------------------------------------------------------
 
@@ -242,5 +224,116 @@ package body sgf is
    end findChild;
 
 ---------------------------------------------------------------------------------------------------
+
+   function getCurrentPath(pwd_file : in P_file) return Unbounded_String is
+   
+      parent_path: Unbounded_String;
+      VOID_POINTER_ERROR: exception;
+
+   begin
+
+      if pwd_file = null then
+         raise VOID_POINTER_ERROR with "Error : file is null";
+      end if;
+      if pwd_file.Rep_Parent = null then
+         return To_Unbounded_String("/");
+      else
+         parent_path := getCurrentPath(pwd_file.Rep_Parent);
+         return parent_path & "/" & pwd_file.Nom;
+      end if;
+
+   end getCurrentPath;
+
+---------------------------------------------------------------------------------------------------
+
+   function getChildren(adress_file : in P_file) return P_list is 
+
+      VOID_CHILD_ERROR: exception;
+
+      begin
+      if adress_file.all.L_enfant.Is_Empty then 
+         raise VOID_CHILD_ERROR with "Error : no child in this directory";
+      else 
+         return adress_file.all.L_enfant;
+      end if;
+
+   end getChildren;
+
+----------------------------------------------------------------------------------------------------
+
+   procedure displayFile(current_directory : in P_file) is
+   begin
+      
+      if current_directory = null then
+         Put_Line("Erreur : Le fichier à afficher est null.");
+         return;
+      end if;
+
+      New_Line;
+      
+      Put("Type             : ");
+      if current_directory.isRepo then
+         Put_Line("d (Dossier)"); 
+      else
+         Put_Line("- (Fichier)"); 
+      end if;
+      Put_Line("Access Right     : " & current_directory.droits_acces);
+      Put_Line("Size             : " & Integer'Image(current_directory.taille) & " o");
+      Put_Line("File name        : " & To_String(current_directory.nom));
+      Put("Sous répertoires : ");
+      if current_directory.isRepo and then current_directory.L_enfant /= null then
+         Put_Line(Count_Type'Image(current_directory.L_enfant.Length));
+      else
+         Put_Line("0 (Non applicable)");
+      end if;
+      Put("Parent           : ");
+      if current_directory.rep_parent /= null then
+         Put_Line(To_String(current_directory.rep_parent.nom));
+      else
+         Put_Line("[]");
+      end if;
+
+      New_Line;
+
+      if (current_directory.L_enfant = null) and (current_directory.isRepo = True) then 
+         Put("Pas d'enfants");
+      elsif (current_directory.L_enfant /= null) and (current_directory.isRepo = True) then
+         
+         declare
+         
+            ma_liste: List renames current_directory.L_enfant.all;
+         
+         begin
+         
+            Put_Line("Liste des enfants de "& To_String(current_directory.nom) & " :");
+            --Boucle sur chaque élément de la liste avec la bibliothèque Ada.Containers.Doubly_Linked_Lists
+            for Element_pointe of ma_liste loop
+               if Element_pointe /= null then
+                  Put_Line("- " & To_String(Element_pointe.nom));
+               end if;
+            end loop;
+
+         end;
+
+      end if;
+
+   end displayFile;
+
+-------------------------------------------------------------------------------------
+
+   procedure displayFileContent(current_directory : in P_file) is
+
+      children_list : P_list;
+
+      begin
+
+         children_list := getChildren(current_directory);
+
+         for child of children_list.all loop
+            Put_Line(To_String(child.nom));
+         end loop;
+
+   end displayFileContent;
+
 
 end SGF;
