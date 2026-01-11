@@ -2,6 +2,7 @@ with Ada.Text_IO;                use Ada.Text_IO;
 with Ada.Integer_Text_IO;        use Ada.Integer_Text_IO;
 with Ada.Strings.Unbounded;      use Ada.Strings.Unbounded;
 with System;
+with Ada.Containers;             use Ada.Containers;
 with Ada.Characters.Handling;    use Ada.Characters.Handling;
 with Ada.Containers.Doubly_Linked_Lists;
 
@@ -49,7 +50,7 @@ package SGF is
    -- fichier fils bien créé et conforme à ce qui est demandé
    procedure createFile (nom: in String; isRepo : in Boolean);
 
-   --Nom : getCurrentFile (pwd)
+   --Nom : getCurrentPath(pwd)
    --Objectif : Retourner le chemin absolu du fichier actuelle
    --Paramètres : current_file in, type P_file
    --Pré : current_file existe dans le sgf
@@ -57,15 +58,47 @@ package SGF is
    --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
    function getCurrentPath(pwd_file : in P_file) return Unbounded_String;
 
+   --Nom : getChildren
+   --Objectif : Retourner le pointeur des enfants 
+   --Paramètres : adress_file in, type P_file
+   --Pré : le fichier pointé par adress_file existe, le pointeur de la liste d'enfant existe  
+   --Post : le pointeur de l liste d'enfant est retourné
+   --Test : être en mesure de retourner l'adresse de la liste enfant.
    function getChildren(adress_file : in P_file) return P_list;
 
+   --Nom : findChild
+   --Objectif : chercher dans la liste des enfants 
+   --Paramètres : children_list in, type List, child_to_find in, type String
+   --Pré : La liste n'est pas vide, 
+   --Post : le chemin absolu du fichier actuel est retourné
+   --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
    function findChild(children_list : in List; child_to_find : in String) return P_file;
 
-   function get_current_directory return P_file;
+   --Nom : get_current_directory
+   --Objectif : Retourner le chemin absolu du fichier actuelle
+   --Paramètres : current_file in, type P_file
+   --Pré : current_file existe dans le sgf
+   --Post : le chemin absolu du fichier actuel est retourné
+   --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
+   function getCurrentDirectory return P_file;
 
-   procedure change_directory(name_file_to_go : in String);
+   
+   --Nom : getCurrentPath(pwd)
+   --Objectif : Retourner le chemin absolu du fichier actuelle
+   --Paramètres : current_file in, type P_file
+   --Pré : current_file existe dans le sgf
+   --Post : le chemin absolu du fichier actuel est retourné
+   --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
+   procedure changeDirectory(name_file_to_go : in String);
 
-   procedure display_file(file_to_show : in P_file);
+      
+   --Nom : getCurrentPath(pwd)
+   --Objectif : Retourner le chemin absolu du fichier actuelle
+   --Paramètres : current_file in, type P_file
+   --Pré : current_file existe dans le sgf
+   --Post : le chemin absolu du fichier actuel est retourné
+   --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
+   procedure displayFile(file_to_show : in P_file);
 
    --  --Nom : changeSize
    --  --Objectif : Change la taille du fichier 
@@ -75,13 +108,13 @@ package SGF is
    --  --Test : la taille du fichier est bien modifiée et égale à la taille+10 ko
    --  procedure changeSize(size : in Integer; modified_file : in File);
 
-   --  --Nom : display_file_content (ls)
-   --  --Objectif : afficher tous le contenus du repertoire actuel
-   --  --Paramètres : current_file in, type P_file, path in , type string
-   --  --Pré : current_file existe dans le sgf
-   --  --Post : tout le contenu s'affiche
-   --  --Test : tout s'affiche à l'écran après l'appel de la fonction
-   --  function display_file_content(path : in String ; folder : in File) return Unbounded_String;
+   --Nom : display_file_content (ls)
+   --Objectif : afficher tous le contenus du repertoire actuel
+   --Paramètres : current_file in, type P_file, path in , type string
+   --Pré : current_file existe dans le sgf
+   --Post : tout le contenu s'affiche
+   --Test : tout s'affiche à l'écran après l'appel de la fonction
+   procedure displayFileContent(current_directory : in P_file) ;
 
    --  --Nom : display_file_all (ls -r)
    --  --Objectif : afficher tous le contenus du repertoire actuel et des répertoire qu'il contient 

@@ -57,7 +57,7 @@ package body SGF is
          raise VOID_POINTER_ERROR with "Error : file is null";
       end if;
       if pwd_file.Rep_Parent = null then
-         return To_Unbounded_String("");
+         return To_Unbounded_String("/");
       
       else
          parent_path := getCurrentPath(pwd_file.Rep_Parent);
@@ -97,15 +97,15 @@ package body SGF is
 
    ----------
 
-   function get_current_directory return P_file is
+   function getCurrentDirectory return P_file is
 
    begin
       return current_directory;
-   end get_current_directory;
+   end getCurrentDirectory;
 
    ----------
 
-   procedure change_directory(name_file_to_go : in String) is
+   procedure changeDirectory(name_file_to_go : in String) is
 
       current : P_file;
       next_dir : P_file;
@@ -123,28 +123,65 @@ package body SGF is
          end if; 
 
 
-      end change_directory;
+      end changeDirectory;
       
    ----------
 
-   procedure display_file(file_to_show : in P_file) is
+   procedure displayFile(file_to_show : in P_file) is
       begin
+         
          if file_to_show = null then
             Put_Line("Erreur : Le fichier à afficher est null.");
             return;
          end if;
-         Put_line("Type : ");
-         if file_to_show.isRepo then
-            Put("d"); 
-         else
-            Put("-"); 
-         end if;
-         Put_Line("Access Right" & file_to_show.droits_acces & " ");
-         Put_Line("Size" & Integer'Image(file_to_show.taille) & " o ");
-         Put_Line("File name" & To_String(file_to_show.nom));
-         Put_Line("Sous répertoires" & file_to_show.L_enfant.all & " ");
-         Put_Line("Parent" & file_to_show.rep_parent & " ");
 
-      end display_file;
+         New_Line;
+
+         
+         Put("Type             : ");
+         if file_to_show.isRepo then
+            Put_Line("d (F)"); 
+         else
+            Put_Line("- (Fichier)"); 
+         end if;
+
+         Put_Line("Access Right     : " & file_to_show.droits_acces);
+
+         Put_Line("Size             : " & Integer'Image(file_to_show.taille) & " o");
+
+         Put_Line("File name        : " & To_String(file_to_show.nom));
+
+         Put("Sous répertoires : ");
+         if file_to_show.isRepo and then file_to_show.L_enfant /= null then
+            Put_Line(Count_Type'Image(file_to_show.L_enfant.Length));
+         else
+            Put_Line("0 (Non applicable)");
+         end if;
+
+         Put("Parent           : ");
+         if file_to_show.rep_parent /= null then
+      
+            Put_Line(To_String(file_to_show.rep_parent.nom));
+         else
+            Put_Line("");
+         end if;
+         
+         New_Line;
+
+   end displayFile;
+
+   procedure displayFileContent(current_directory : in P_file) is
+
+      children_list : P_list;
+
+      begin
+
+         children_list := getChildren(current_directory);
+
+         for child of children_list.all loop
+            Put_Line(To_String(child.nom));
+         end loop;
+
+   end displayFileContent;
 
 end SGF;

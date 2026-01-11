@@ -37,7 +37,7 @@ begin
    SGF.createFile("trucs", False);
 
    Put_Line("--- Test trouver liste ---");
-   root_children := SGF.getChildren(SGF.get_current_directory);
+   root_children := SGF.getChildren(SGF.getCurrentDirectory);
 
    Put_Line("--- Test récupérer enfant ---");
 
@@ -51,7 +51,7 @@ begin
 
    Put_Line ("Test pwd sans le chemin");
    
-   current := SGF.get_current_directory;
+   current := SGF.getCurrentDirectory;
 
    Put(To_String(SGF.getCurrentPath(current)));
    Put_Line("SUCCES : chemin trouvé !");
@@ -60,15 +60,19 @@ begin
    --  SGF.createFile ("Raptor_file", False);
    --  SGF.change_directory("Raptor_file");
    SGF.createFile ("Raptor_directory", True);
-   SGF.change_directory("Raptor_directory");
+   SGF.changeDirectory("Raptor_directory");
    
    Put_Line ("Test pwd sans le chemin");
-   current := SGF.get_current_directory;
+   current := SGF.getCurrentDirectory;
    Put(To_String(SGF.getCurrentPath(current)));
    SGF.createFile("raptor_baby",True);
-   SGF.change_directory("raptor_baby");
-   current := SGF.get_current_directory;
-   SGF.display_file(current);
+   SGF.createFile("ankilosaure", False);
+   --  SGF.changeDirectory("raptor_baby");
+   current := SGF.getCurrentDirectory;
+
+   SGF.displayFile(current);
+
+   SGF.displayFileContent(current);
 
 
 end tests_sgf;
