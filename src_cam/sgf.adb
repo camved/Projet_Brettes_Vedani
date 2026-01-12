@@ -1,3 +1,7 @@
+with SGF;
+with Ada.Strings.Fixed; 
+with Ada.Strings;
+
 package body SGF is
 
 
@@ -25,24 +29,55 @@ package body SGF is
 
    ----------
       
-   procedure createFile (nom: in String; isRepo : in Boolean)is
+procedure createFile (nom_or_path: in String; isRepo : in Boolean) is
       pointer_created : P_file;
+      nom : Unbounded_String;
+      
+      Target_Parent : P_file; 
+      Last_Slash : Natural;
+
    begin
+      
+      if containsSlash(nom_or_path) then
+         Last_Slash := Ada.Strings.Fixed.Index(nom_or_path, "/", Going => Ada.Strings.Backward);
+         
+         if Last_Slash = nom_or_path'First then
+            Target_Parent := parsePath("/", SGF.current_directory);
+         else
+            Target_Parent := parsePath(nom_or_path(nom_or_path'First .. Last_Slash - 1), SGF.current_directory);
+         end if;
+         
+         nom := To_Unbounded_String(nom_or_path(Last_Slash + 1 .. nom_or_path'Last));
+         
+      else
+         
+         Target_Parent := SGF.current_directory;
+         nom := To_Unbounded_String(nom_or_path);
+      end if;
+
       pointer_created := new file;
-      pointer_created.nom := To_Unbounded_String(nom);
+      pointer_created.nom := nom;
       pointer_created.droits_acces := "rwxrwxrwx";
       pointer_created.taille := 1;
-      pointer_created.rep_parent := SGF.current_directory;
-      pointer_created.L_enfant := null;
+      
+      pointer_created.rep_parent := Target_Parent; 
+      
       pointer_created.isRepo := isRepo;
 
-   if isRepo then
-      pointer_created.L_enfant := new File_List_Pkg.List; -- Liste reste vide tant que pas d'enfant et répertoire
-   else
-      pointer_created.L_enfant := null; -- si fichier
-   end if;
+      if isRepo then
+         pointer_created.L_enfant := new File_List_Pkg.List; 
+      else
+         pointer_created.L_enfant := null; 
+      end if;
 
-   pointer_created.rep_parent.all.L_enfant.all.Append(pointer_created);
+      if pointer_created.rep_parent.L_enfant = null then
+          Put_Line("Erreur : Le chemin de destination n'est pas un dossier valide.");
+      else
+          pointer_created.rep_parent.L_enfant.Append(pointer_created);
+      end if;
+
+      displayFile (pointer_created);
+
 
    end createFile;
 
@@ -61,11 +96,13 @@ package body SGF is
       
       else
          parent_path := getCurrentPath(pwd_file.Rep_Parent);
-         return parent_path & "/" & pwd_file.Nom;
+         return parent_path & pwd_file.Nom & "/"  ;
       end if;
    end getCurrentPath;
 
    ----------
+
+   
 
    function getChildren(adress_file : in P_file) return P_list is 
 
@@ -152,18 +189,23 @@ package body SGF is
          Put_Line("File name        : " & To_String(file_to_show.nom));
 
          Put("Sous répertoires : ");
-         if file_to_show.isRepo and then file_to_show.L_enfant /= null then
+         if file_to_show.isRepo then
             Put_Line(Count_Type'Image(file_to_show.L_enfant.Length));
          else
-            Put_Line("0 (Non applicable)");
+            Put_Line("File (no children)");
          end if;
 
          Put("Parent           : ");
          if file_to_show.rep_parent /= null then
-      
-            Put_Line(To_String(file_to_show.rep_parent.nom));
+               
+            if To_String(file_to_show.rep_parent.nom) = "" then
+               Put_Line("root"); 
+            else
+               Put_Line(To_String(file_to_show.rep_parent.nom));
+            end if;
+
          else
-            Put_Line("");
+            Put_Line("No parents");
          end if;
          
          New_Line;
@@ -183,5 +225,169 @@ package body SGF is
          end loop;
 
    end displayFileContent;
+
+   ----------
+
+      function  parseRelative (fichier: in String; current_directory: in P_file) return P_file is
+
+      First_Slash : Integer := 0; --permet de gérer l'avancée du découpage
+
+   begin
+
+      -- cas : fin de parcours 
+      if fichier'Length = 0 then -- VITAL POUR LA RECURSION
+         return current_directory;
+      end if;
+
+      -- recherche du prochain /
+      -- instanciation avec de la généricité de la recherche du /
+      First_Slash := Ada.Strings.Fixed.Index(Source => fichier, Pattern => "/");
+
+      -- découpage du segment actuel
+      declare
+         --cette partie différencie les cas possibles et initialise des variables en fonction de la position du /
+         Segment : constant String := (if First_Slash = 0 then (fichier) else (fichier(fichier'First .. First_Slash - 1)));
+
+         Reste: constant String := (if First_Slash = 0 then "" else fichier(First_Slash+1.. fichier'Last));
+
+         Prochain : P_file;
+
+         VOID_INVALID_PATH: exception;
+         VOID_ROOT_LOCATION: exception;
+
+         begin
+
+            -- Gestion des segments vides : on refuse un chemin de type /exemple1//exemple2
+            if Segment = "" then
+               if Reste = "" then -- ce cas représente un / final
+                  return current_directory;
+               else -- c'est le cas d'un //
+                  raise VOID_INVALID_PATH with "Erreur : double slash interdit";
+               end if;
+   
+            -- cas : répertoire courant = "."
+            elsif Segment = "." then
+               return parseRelative(Reste, current_directory);
+
+            -- cas : répertoire parent = ".."
+            elsif Segment = ".." then
+               if current_directory.rep_parent = null then -- cas où on est à la racine
+                  raise VOID_ROOT_LOCATION with "Erreur : vous essayez de monter au dessus de la racine";
+               else
+                  return parseRelative(Reste, current_directory.rep_parent);
+               end if;
+            
+            -- cas général
+            else
+
+               Prochain := findChild(current_directory.L_enfant.all, Segment);
+
+               if Prochain = null then
+                  raise VOID_INVALID_PATH with "Erreur : le chemin demandé n'existe pas";
+               elsif Reste /= "" and then not Prochain.isRepo then
+                  raise VOID_INVALID_PATH with "Erreur : c'est un fichier";
+               else
+                  return parseRelative(Reste, Prochain);
+               end if;
+            end if;
+         end;
+
+   end parseRelative;
+
+   ----------
+
+   function parseAbsolute (fichier: in String; current_directory: in P_file) return P_file is
+
+      tempDir: P_file; --doit prendre la valeur de la racine au début
+
+   begin
+
+      tempDir := findRoot(current_directory);
+      if fichier'Length > 1 then
+         declare
+            -- extrait la partie après le / initial
+            Reste : constant String := fichier(fichier'First + 1..fichier'last);
+         
+         begin
+
+            return parseRelative (Reste, tempDir);
+         
+         end;
+      else -- le chemin est juste "/"
+         return tempDir;
+      end if;
+
+   end parseAbsolute;
+
+   ----------
+
+   function findRoot (current_directory: in P_file) return P_file is
+
+      VOID_POINTER_ERROR: exception;
+
+   begin
+
+      if current_directory = null then
+         raise VOID_POINTER_ERROR;
+      elsif current_directory.all.rep_parent = null then
+         return current_directory;
+      else
+         return findRoot(current_directory.all.rep_parent);
+      end if;
+   
+   end findRoot;
+
+   ----------
+
+   function parsePath (fichier: in String; current_directory: in P_file) return P_file is
+
+      EMPTY_STRING: Exception;
+      INVALID_FIRST_CHAR: Exception;
+      firstSlash: Integer := 0;
+
+   begin
+   
+      if fichier'Length = 0 then
+         raise EMPTY_STRING;
+      else
+         if fichier(fichier'First) = '/' then
+            return(parseAbsolute(fichier, current_directory)); 
+         elsif (fichier(fichier'First) = '.') or Is_Letter (fichier(fichier'First)) then
+            return(parseRelative(fichier, current_directory));
+         else
+            raise INVALID_FIRST_CHAR;
+         end if;
+      end if;
+
+   end parsePath;
+
+   ----------
+
+   function containsSlash(Text : in String) return Boolean is
+   begin
+      return (Ada.Strings.Fixed.Index(Text, "/") > 0);
+   end containsSlash;
+
+   ----------
+
+   function getName(path : String) return unbounded_string is
+
+      last_Slash_Index : Natural;
+
+      begin
+
+         if containsSlash(path) then 
+            last_Slash_Index := Ada.Strings.Fixed.Index(
+               Source  => path, 
+               Pattern => "/", 
+               Going   => Ada.Strings.Backward
+            );
+            return To_Unbounded_String(path(last_Slash_Index + 1 .. path'Last));
+
+         else 
+            return(To_Unbounded_String(path));
+         end if;
+      end getName;
+
 
 end SGF;

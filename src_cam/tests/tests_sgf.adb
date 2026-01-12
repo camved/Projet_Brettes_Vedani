@@ -33,6 +33,8 @@ begin
 
   ---------------------------------------------------------
    Put_Line("--- Test create file ---");
+   Put_Line("création de test et trucs, enfants de root");
+
    SGF.createFile("test", False);
    SGF.createFile("trucs", False);
 
@@ -68,11 +70,18 @@ begin
    SGF.createFile("raptor_baby",True);
    SGF.createFile("ankilosaure", False);
    --  SGF.changeDirectory("raptor_baby");
+   Put_Line ("test_raptor_dir");
    current := SGF.getCurrentDirectory;
 
    SGF.displayFile(current);
 
-   SGF.displayFileContent(current);
+
+   -------TEST create file avec changement de localisation-----
+   Put_Line("--- Test create file ---");
+
+   SGF.createFile("raptor_baby", False);
+  
+
 
 
 end tests_sgf;

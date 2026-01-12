@@ -5,6 +5,7 @@ with System;
 with Ada.Containers;             use Ada.Containers;
 with Ada.Characters.Handling;    use Ada.Characters.Handling;
 with Ada.Containers.Doubly_Linked_Lists;
+with Ada.Strings.Fixed;          use Ada.Strings.Fixed;
 
 package SGF is 
 
@@ -48,7 +49,7 @@ package SGF is
    --Post :
    -- répertoire parent est bien un répertoire (file.rep_parent.all.isRepo = True)
    -- fichier fils bien créé et conforme à ce qui est demandé
-   procedure createFile (nom: in String; isRepo : in Boolean);
+   procedure createFile (nom_or_path: in String; isRepo : in Boolean);
 
    --Nom : getCurrentPath(pwd)
    --Objectif : Retourner le chemin absolu du fichier actuelle
@@ -100,6 +101,42 @@ package SGF is
    --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
    procedure displayFile(file_to_show : in P_file);
 
+   --Nom: parseRelative
+   --Objectif: renvoyer l'adresse du fichier cherché
+   --Paramètres:
+      --fichier: in String
+      --current_directory: in P_file
+   --Pré: chemin relatif uniquement -> premier caractère = lettre ou .
+   --Post: adresse renvoyée
+   --Exception: NOT_EXISTING
+   function parseRelative (fichier: in String; Current_Directory: in P_file) return P_file;
+
+   --Nom: parseAbsolute
+   --Objectif: renvoyer l'adresse du fichier cherché
+   --Paramètres: 
+      --fichier: in String
+      --current_directory: in P_file
+   --Pré: chemin absolu uniquement
+   --Post: adresse renvoyée
+   --Exception: NOT_EXISTING
+   function parseAbsolute (fichier: in String; current_directory: in P_file) return P_file;
+
+   --Nom : parsePath
+   --Objectif : Renvoyer l'adresse du répertoire ou du fichier visé
+   --Paramètre :
+      -- fichier : in String
+      -- ID : out Address
+   --Pré : 
+      --String de taille > 0
+      --Premier caractère lettre ou . ou /
+   --Post :
+      --Adresse valide renvoyée en hexadécimale
+      --Erreur renvoyée si n'existe pas
+   --Exceptions : 
+      --=> EMPTY_STRING
+      --=> INVALID_FIRST_CHAR
+   function parsePath (fichier: in String; current_directory: in P_file) return P_file;
+
    --  --Nom : changeSize
    --  --Objectif : Change la taille du fichier 
    --  --Paramètres : size in, type Integer, modified_file in , type File
@@ -110,11 +147,22 @@ package SGF is
 
    --Nom : display_file_content (ls)
    --Objectif : afficher tous le contenus du repertoire actuel
-   --Paramètres : current_file in, type P_file, path in , type string
+   --Paramètres : current_file in, type P_file
    --Pré : current_file existe dans le sgf
    --Post : tout le contenu s'affiche
    --Test : tout s'affiche à l'écran après l'appel de la fonction
    procedure displayFileContent(current_directory : in P_file) ;
+
+   --Nom: findRoot
+   --Objectif: renvoyer l'adresse de la racine
+   --Paramètre: 
+   --Pré: racine créée
+   --Post: l'adresse de la racine est renvoyée
+   function findRoot (current_directory:  in P_file) return P_file;
+
+   function getName(path : String) return unbounded_string;
+
+   function containsSlash(Text : in String) return Boolean;
 
    --  --Nom : display_file_all (ls -r)
    --  --Objectif : afficher tous le contenus du repertoire actuel et des répertoire qu'il contient 
