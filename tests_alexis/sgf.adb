@@ -19,13 +19,10 @@ package body sgf is
 ------------------------------------------------------------------------------------------------
 
    function findRoot (current_directory: in P_file) return P_file is
-
-      VOID_POINTER_ERROR: exception;
-
    begin
 
       if current_directory = null then
-         raise VOID_POINTER_ERROR;
+         return null;
       elsif current_directory.all.rep_parent = null then
          return current_directory;
       else
@@ -110,9 +107,6 @@ package body sgf is
 
          Prochain : P_file;
 
-         VOID_INVALID_PATH: exception;
-         VOID_ROOT_LOCATION: exception;
-
          begin
 
             -- Gestion des segments vides : on refuse un chemin de type /exemple1//exemple2
@@ -120,7 +114,7 @@ package body sgf is
                if Reste = "" then -- ce cas représente un / final
                   return current_directory;
                else -- c'est le cas d'un //
-                  raise VOID_INVALID_PATH with "Erreur : double slash interdit";
+                  raise VOID_INVALID_PATH;
                end if;
    
             -- cas : répertoire courant = "."
@@ -141,9 +135,9 @@ package body sgf is
                Prochain := findChild(current_directory.L_enfant.all, Segment);
 
                if Prochain = null then
-                  raise VOID_INVALID_PATH with "Erreur : le chemin demandé n'existe pas";
+                  raise VOID_INVALID_PATH;
                elsif Reste /= "" and then not Prochain.isRepo then
-                  raise VOID_INVALID_PATH with "Erreur : c'est un fichier";
+                  raise VOID_INVALID_PATH with "Pas un répertoire.";
                else
                   return parseRelative(Reste, Prochain);
                end if;
@@ -181,8 +175,6 @@ package body sgf is
 
    function parsePath (fichier: in String; current_directory: in P_file) return P_file is
 
-      EMPTY_STRING: Exception;
-      INVALID_FIRST_CHAR: Exception;
       firstSlash: Integer := 0;
 
    begin
@@ -329,13 +321,10 @@ end extractParent;
 --------------------------------------------------------------------------------------------------
 
    function findChild(children_list : in List; child_to_find : in String) return P_file is
-   
-      VOID_CHILD_ERROR: exception;
-
    begin
 
       if children_list.Is_Empty then 
-         raise VOID_CHILD_ERROR;
+         return null;
       else
          for child_element of children_list loop
             if To_String(child_element.all.nom) = child_to_find then
@@ -475,28 +464,303 @@ end extractParent;
 
 --------------------------------------------------------------------------------------
 
-   procedure renameOrMove(source_file: in String; new_file: in String; current_directory: in P_file) is
+   --  procedure renameOrMove(source_file: in String; new_file: in String; current_directory: in P_file) is
 
-      temp_source: P_file;
-      temp_new: P_file;
+   --     temp_source: P_file;
+   --     temp_new: P_file;
 
-      parent_source : P_file;
-      parent_new : P_file;
+   --     parent_source : P_file;
+   --     parent_new : P_file;
 
+   --  begin
 
-   begin
+   --     --Le but est d'extraire le répertoire parent souhaité
+   --     temp_source := parsePath(source_file, current_directory);
+   --     temp_new := parsePath(new_file);
 
-      --Le but est d'extraire le répertoire parent souhaité
-      temp_source := parsePath(source_file, current_directory);
-      temp_new := parsePath(new_file);
+   --     parent_source := extractParent(source_file, current_directory);
+   --     parent_new := extractParent(new_file, current_directory);
 
-      parent_source := extractParent(source_file, current_directory);
-      parent_new := extractParent(new_file, current_directory);
+   --     if getExisting (source_file, current_directory) then
+   --        if parent_source = parent_new then --cas du renommage
+   --           temp_source.nom := To_String(getName(source_file));
+   --        else --cas du déplacement
 
-      
+            
+
+   --  end renameOrMove;
 
 ---------------------------------------------------------------------------------------
 
+   function getName(path: in String) return unbounded_string is
+
+      last_Slash_Index : Natural;
+
+      begin
+
+         if containsSlash(path) then 
+            last_Slash_Index := Ada.Strings.Fixed.Index(
+               Source  => path, 
+               Pattern => "/", 
+               Going   => Ada.Strings.Backward
+            );
+            return To_Unbounded_String(path(last_Slash_Index + 1 .. path'Last));
+
+         else 
+            return(To_Unbounded_String(path));
+         end if;
+      end getName;
+
+---------------------------------------------------------------------------------------
+
+   function containsSlash(Text : in String) return Boolean is
+   begin
+
+         return (Ada.Strings.Fixed.Index(Text, "/") > 0);
+   
+   end containsSlash;
+
+---------------------------------------------------------------------------------------
+
+   function getExisting (fichier : in String; current_directory : in P_file) return Boolean is
+   begin
+
+      return parsePath(fichier, current_directory) /= null;
+   
+   exception
+
+      when VOID_INVALID_PATH | EMPTY_STRING | INVALID_FIRST_CHAR =>
+         return False;
+
+   end getExisting;
+
+-------------------------------------------------------------------------------------------
+
+   procedure putExisting (fichier: in String; current_directory: in P_file) is
+   begin
+
+      if getExisting (fichier, current_directory) then
+         Put_Line(fichier & " existe bien.");
+      else
+         Put_Line (fichier & " n'existe pas.");
+
+      end if;
+
+   end putExisting;
+
+-------------------------------------------------------------------------------------------
+
+   --  procedure menuChoice (racine: in P_file; current_directory: in out P_file) is
+
+   --     choice: Integer;
+
+   --  begin
+
+   --     loop
+
+   --        New_Line;
+   --        Put_Line("---Choice of the menu---");
+   --        Put_Line("1. Interactive menu");
+   --        Put_Line("2. CLI menu");
+   --        Put_Line("3. Leave");
+
+   --        begin
+   --           Get(choice);
+   --           Skip_Line;
+   --        exception
+   --           when others =>
+   --              Skip_Line;
+   --              choice := 0; --permet d'éviter les DATA_ERROR
+   --        end;
+      
+   --        case choice is
+   --           when 1 => 
+   --              interactiveMenu (current_directory);
+   --           when 2 => 
+   --              cliMenu (current_directory);
+   --           when 3 => 
+   --              Put("Leaving the program");
+   --           when others =>
+   --              Put("Invalid choice, please enter a correct value");
+   --        end case;
+
+   --     exit when choice = 3;
+   --     end loop;
+   
+   --  end menuChoice;
+-------------------------------------------------------------------------------------------
+
+   procedure copy_file(path : in String ; copied_name : in String; current_dir : P_file ) is
+
+      parent : P_file;
+      to_be_copied : P_file;
+      children_list_current : P_list;
+
+   begin
+
+      children_list_current := getChildren(current_dir);
+      to_be_copied := findChild(children_list_current.all, copied_name);
+      displayFile (to_be_copied);
+
+      parent := extractParent(path, current_dir);
+      SGF.current_directory := parent;
+      createFile (To_String(to_be_copied.nom), to_be_copied.isRepo);
+      displayFile (SGF.current_directory);
+      SGF.current_directory := current_dir;
+      displayFile (SGF.current_directory);
+
+   end copy_file;
+
+-------------------------------------------------------------------------------------------
+
+   procedure interactiveMenu(racine: in P_file; current_directory: in P_file) is
+
+      choice: Integer;
+
+   begin
+
+      loop
+         New_Line;
+         Put_Line("---File Management System---");
+         Put_Line("You are currently in " & Put(To_String(getCurrentPath)));
+         Put_Line("1. Create a file (mkdir or touch)");
+         Put_Line("2. Change directory (cd)");
+         Put_Line("3. Delete a file (rm or rm -r)");
+         Put_Line("4. Move or rename a file (mv)");
+         Put_Line("5. Change the space taken by a file (non-directory)");
+         Put_Line("6. Display the files in directory (ls)");
+         Put_Line("7. Leave");
+         Put_Line("---Enter your choice---");
+      exit when choice = 7;
+      end loop;
+
+      begin
+
+         Get(choice);
+         Skip_Line;
+         exception
+            when others =>
+               Skip_Line;
+               choice := 0;
+      end;
+
+      case choice is
+         when 1 =>
+            menuCreate(current_directory);
+
+
+--------------------------------------------------------------------------------------------------------------
+
+   procedure menuCreate(current_directory: in P_file) is
+
+      name: Unbounded_String;
+      isDir: Character;
+
+   begin
+
+      loop
+         Put_Line("Please enter the desired file path :");
+         name := To_Unbounded_String(Get_Line);
+         exit when getPathValidity(To_String(name));
+         Put_Line("Invalid path, please try again");
+      end loop;
+
+      loop
+         Put_Line("Is it a directory? y/n");
+         Get(isDir);
+         exit when isDir = 'y' or isDir = 'n';
+         Put_Line("Please enter one of the specified characters");
+      end loop;
+      if isDir = 'y' then
+         createFile(To_String(name), True);
+      else 
+         createFile(To_String(name), False);
+      end if;
+
+   end menuCreate;
+      
+-------------------------------------------------------------------------------------------------------------
+
+function getPathValidity (path : in String) return Boolean is
+   
+   function isValidChar(C : in Character) return Boolean is
+   begin
+      return (Is_Alphanumeric(C) or C = '.' or C = '_' or C = '-' or C = '/');
+   end isValidChar;
+
+   finish        : Integer;
+   start         : Integer;
+   segment_count : Integer := 0;
+
+begin
+   -- 1. Vérification de la taille
+   if path'Length = 0 then
+      return False;
+   end if;
+
+   -- 2. Vérification des caractères et des doubles slashes
+   for i in path'Range loop
+      if not isValidChar(path(i)) then
+         return False;
+      end if;
+      
+      -- Interdiction de "//" pour éviter les segments vides ambigus
+      if i < path'Last and then path(i) = '/' and then path(i+1) = '/' then
+         return False;
+      end if;
+   end loop;
+
+   -- 3. Analyse par segments
+   start := path'First;
+   -- Si le chemin est absolu, on commence l'analyse après le premier '/'
+   if path(start) = '/' then
+      start := start + 1;
+   end if;
+
+   while start <= path'Last loop
+      segment_count := segment_count + 1;
+      
+      -- Trouver la fin du segment (prochain '/' ou fin de chaîne)
+      finish := start;
+      while finish <= path'Last and then path(finish) /= '/' loop
+         finish := finish + 1;
+      end loop;
+
+      declare
+         -- Extraction du segment
+         segment : constant String := path(start .. finish - 1);
+      begin
+         -- On autorise "." et ".." partout, donc pas de vérification de position.
+         
+         -- Seule restriction sur le contenu du segment :
+         -- Interdiction des segments constitués uniquement de "-" ou "_"
+         if segment = "-" or segment = "_" then
+            return False;
+         end if;
+         
+         -- Note : Les fichiers cachés (ex: ".bashrc") ou les noms 
+         -- contenant ces caractères (ex: "my-file_1") sont autorisés.
+      end; 
+
+      start := finish + 1;
+   end loop;
+
+   return True;
+end getPathValidity;
+
+------------------------------------------------------------------------------------------------------
+
+   procedure testGetPathValidity(isValid: in Boolean) is
+   begin
+
+      if isValid = True then
+         Put_Line("The path is correct");
+      else
+         Put_Line("The past isn't correct.");
+         Put_Line("- and _ can't make a whole segment. Only alphanumerical values are allowed.");
+      end if;
+   
+   end testGetPathValidity;
 
 
 end SGF;

@@ -18,6 +18,7 @@ package sgf is
    NOT_IN_THIS_DIRECTORY: Exception;
    NOT_A_DIRECTORY: Exception;
    FILE_NOT_EXIST: Exception;
+   VOID_NOT_EXISTING: Exception;
 
    type file; --Déclaration partielle pour permettre le pointeur suivant
 
@@ -50,6 +51,15 @@ package sgf is
    --Post : un répertoire racine créé
    --Test : être en mesure de se déplacer dans le répertoire racine avec cd une fois le répertoire racine créé
    procedure initRacine (root: in out file);
+----------------------------------------------------------------------------------------------
+
+   --Nom: file_or_folder (cp)
+   --Objectif : copier le fichier ou rep dans un autre repertoire
+   --Paramètres : path in, type String,  copied_name in, type P_file
+   --Pré : copied existe dans le  et le chemin est valide
+   --Post : le fichier est copié au bon endroit
+   --Test : être en mesure de rverifier que le fichier copié est au bonne endroit et identique au premier
+   procedure copy_file(path : in String ; copied_name : in String; current_dir : P_file );
 
 ----------------------------------------------------------------------------------------------
 
@@ -219,7 +229,115 @@ package sgf is
    --Pré : modified_file existe dans le sgf et le chemin est valide
    --Post : le fichier est changé de place ou renommé
    --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé, et quelle ait changé si changement de nom ou de repertoire suf si le chemin donné est erroné
-   procedure renameOrMove(source_file : in String; new_file: in string; current_directory: in P_file);
+   --procedure renameOrMove(source_file : in String; new_file: in string; current_directory: in P_file);
 
+------------------------------------------------------------------------------------------------------
+
+   --Nom : getExisting
+   --Objectif : vérifier si un fichier existe bien
+   --Paramètres : 
+      --fichier : in String
+      --current_directory : in P_file
+      --return : Boolean
+   --Pré : String débutant par ".", ".." ou une lettre
+   --Post : True si le fichier existe, False sinon
+   function getExisting(fichier: in String; current_directory: in P_file) return Boolean;
+
+-------------------------------------------------------------------------------------------------------
+
+   --Nom: putExisting
+   --Objectif: affiche l'état d'existence du fichier
+   --Paramètres : 
+      --fichier : in String
+      --current_directory : in P_file
+      --return : Boolean
+   --Pré : String débutant par ".", ".." ou une lettre
+   --Post : 
+   procedure putExisting(fichier: in String; current_directory: in P_file);
+
+--------------------------------------------------------------------------------------------------------
+
+   --Nom : getName
+   --Objectif : retourner le nom du fichier sans le chemin
+   --Exemple : /usr/share/alexis/file.txt renvoie file.txt
+   --Paramètre :
+      --path: in String
+   --Pré : chemin valide
+   --Post : découpage correct
+   function getName(path : in String) return unbounded_string;
+
+---------------------------------------------------------------------------------------------------------
+
+   --Nom: interactiveMenu
+   --Objectif: afficher un menu interactif qui guide l'utilisateur au maximum dans ses choix en expliquant la syntaxe et ne laissant pas de place à l'erreur
+   --Paramètres: none
+   --Pré: 
+--   procedure interactiveMenu(current_directory: in out P_file);
+
+----------------------------------------------------------------------------------------------------------
+
+   function containsSlash(Text : in String) return Boolean;
+
+----------------------------------------------------------------------------------------------------------
+
+   --Nom: menuChoice
+   --Objectif: afficher un petit menu permettant de choisir entre le menu interactif ou le CLI
+   --Paramètre: none
+--   procedure menuChoice(current_directory: in out P_file);
+
+--------------------------------------------------------------------------------------------------------
+
+   --Nom: menuTouch
+   --Objectif: guider l'utilisateur dans la création d'un fichier non-directory
+   --Paramètres :
+      --racine: in P_file
+      --current_directory: in out P_file
+   --Pré :
+   --Post :
+--   procedure menuTouch(current_directory: in out P_file);
+
+---------------------------------------------------------------------------------------------------------
+
+   --Nom: menuCreate
+   --Objectif: guider l'utilisateur dans la création d'un fichier, qu'il soit répertoire ou pas
+   --Paramètres :
+      --current_directory: in P_file
+   --Pré:
+   --Post:
+   procedure menuCreate(current_directory: in P_file);
+
+---------------------------------------------------------------------------------------------------------
+
+   --Nom: menuChangeDirectory
+   --Objectif: guider l'utilisateur dans le changement de son current_directory
+   --Paramètres :
+      --current_directory: in P_file
+   --Pré:
+   --Post:
+   procedure menuChangeDirectory(current_directory: in P_file);
+
+
+---------------------------------------------------------------------------------------------------------
+
+   --Nom: getPathValidity
+   --Objectif : vérifier si le path est valide. On autorise :
+      -- les lettres, chiffres, '.', '_', '-' et '/'
+   --Paramètres :
+      -- path: in String
+      -- return: Boolean
+   --Pré : String en entrée
+   --Post : 
+   --Tests: via testGetPathValidity
+   function getPathValidity (path: in String) return Boolean;
+
+---------------------------------------------------------------------------------------------------------
+
+   --Nom: testGetPathValidity
+   --Objectif: afficher à l'écran si le chemin rentré est correct ou pas
+   --Paramètre: 
+      --path: in String
+   --Pré: String en entrée
+   --Post:
+   procedure testGetPathValidity(isValid: in Boolean);
 
 end SGF;
