@@ -95,7 +95,7 @@ package sgf is
       -- répertoire existant
       -- isRepo = True
    -- Post : current_directory = adresse du fichier cherché
-   procedure changeDirectory(name_file_to_go : in String);
+   procedure changeDirectory(path : in String);
 
 ------------------------------------------------------------------------------------------------
 
@@ -244,7 +244,7 @@ package sgf is
    function getExisting(fichier: in String; current_directory: in P_file) return Boolean;
 
 -------------------------------------------------------------------------------------------------------
-
+s
    --Nom: putExisting
    --Objectif: affiche l'état d'existence du fichier
    --Paramètres : 
@@ -339,5 +339,19 @@ package sgf is
    --Pré: String en entrée
    --Post:
    procedure testGetPathValidity(isValid: in Boolean);
+
+---------------------------------------------------------------------------------------------------------
+
+   --isDirectory
+   --Objectif: renvoyer si un fichier donné en entrée est un répertoire ou pas
+   --Paramètre: 
+      --path: in String
+      --current_directory: in P_file
+      --return Boolean 
+   --Pré: 
+      --le fichier donné en entrée existe
+      --le fichier donné en entrée a un format correct
+   --Post:
+   function isDirectory(path: in String; current_directory: in P_file) return Boolean;
 
 end SGF;

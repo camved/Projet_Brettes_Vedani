@@ -59,27 +59,24 @@ package body sgf is
 
 --------------------------------------------------------------------------------------------------
 
-   procedure changeDirectory(name_file_to_go : in String) is
+  procedure changeDirectory(path : in String) is
+         Destination : P_file;
+      begin
 
-      current : P_file;
-      next_dir : P_file;
-      NOT_IN_THIS_DIRECTORY: exception;
-      NOT_A_DIRECTORY: exception;
+      Destination := SGF.extractParent(path,SGF.current_directory);
 
-   begin
-   
-      current := SGF.current_directory;
-      next_dir := SGf.findChild(current.L_enfant.all, name_file_to_go);
+         if Destination = null then
+            return;
+         end if;
 
-      if next_dir = null then 
-         raise NOT_IN_THIS_DIRECTORY with "Error : no such directories in this directory";
-      elsif not(next_dir.isRepo) then
-         raise NOT_A_DIRECTORY with "Error : not a directory";
-      else
-         SGF.current_directory := next_dir;
-      end if; 
-   
-   end changeDirectory;
+         if not Destination.isRepo then
+            return;
+         end if;
+
+         SGF.current_directory := Destination;
+         
+
+      end changeDirectory;
 
 ---------------------------------------------------------------------------------------------------
 
@@ -659,9 +656,9 @@ end extractParent;
    begin
 
       loop
-         Put_Line("Please enter the desired file path :");
+         Put_Line("Please enter the desired file path:");
          name := To_Unbounded_String(Get_Line);
-         exit when getPathValidity(To_String(name));
+         exit when getPathValidity(To_String(name)) and getExisting(extractParent (name, current_directory), current_directory);
          Put_Line("Invalid path, please try again");
       end loop;
 
@@ -679,6 +676,21 @@ end extractParent;
 
    end menuCreate;
       
+-------------------------------------------------------------------------------------------------------------
+
+   procedure menuChangeDirectory(current_directory: in P_file) is
+
+      name: Unbounded_String;
+      
+   begin
+
+      loop
+         Put_Line("Please enter the directory you want to move in:");
+         name := To_Unbounded_String(Get_Line);
+         exit when getExisting(To_String(name), current_directory) and isDirectory (To_String(name), current_directory);
+          
+
+
 -------------------------------------------------------------------------------------------------------------
 
 function getPathValidity (path : in String) return Boolean is
@@ -762,5 +774,16 @@ end getPathValidity;
    
    end testGetPathValidity;
 
+-------------------------------------------------------------------------------------------------------
 
+   function isDirectory(path: in String; current_directory: in P_file) return Boolean is
+
+      if parsePath(path, current_directory).isRepo then
+         return True;
+      else
+         return False;
+      end if;
+
+   end isDirectory;
+   
 end SGF;
