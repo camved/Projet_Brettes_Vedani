@@ -38,8 +38,9 @@ begin
    displayFile(current_directory);
    changeDirectory("ProutiProuta");
    displayFile(current_directory);
+   New_Line;
    createFile ("camilleGOAT", False);
-   Put(To_String(parsePath(".", current_directory).nom)); 
+   Put(To_String(extractParent("/alexisTest/ProutiProuta/camilleOAT", current_directory).nom)); 
 
 
    --  current_directory := temp;

@@ -201,6 +201,131 @@ package body sgf is
 
    end parsePath;
 
+----------------------------------------------------------------------------------------------------
+
+   --  function extractParent(fichier: in String; current_directory: in P_file) return P_file is
+
+   --     Last_Slash : Integer := 0;
+   --     EMPTY_STRING: Exception;
+   --     FILE_NOT_EXIST: Exception;
+
+   --  begin
+
+   --     --Recherche du cas où le string est vide
+   --     if fichier'Length = 0 then
+   --        raise EMPTY_STRING;
+   --     end if;
+
+   --     --Recherche du dernier slash pour isoler le chemin du parent
+   --     Last_Slash := Ada.Strings.Fixed.Index (Source => fichier, Pattern => "/", Going => Ada.Strings.Backward);
+
+   --     --Analyse selon la position du slash
+   --     if Last_Slash = 0 then
+   --        --cas : file (pas de slash), "." ou ".."
+   --        if fichier = "." then --parent du courant
+   --           return current_directory.rep_parent;
+   --        elsif fichier = ".." then --grand-parent du courant
+   --           if current_directory.rep_parent = null then
+   --              return current_directory;
+   --           else
+   --              return current_directory.rep_parent.all.rep_parent;
+   --           end if;
+   --        else
+   --           -- "file", son parent est le répertoire courant
+   --           return current_directory;
+   --        end if;
+   --     elsif Last_Slash = fichier'Last then
+   --     --cas : "dossier/" ou "./" etc, on retire le slash final et on recommence
+   --        return extractParent(fichier(fichier'First.. fichier'Last-1), current_directory);
+   --     elsif Last_Slash = fichier'First then
+   --        --cas : /file, le parent est la racine
+   --        return findRoot(current_directory);
+   --     else
+   --        --cas "/dir1/dir2/file" ou "dir1/dir2/file"
+   --        declare
+   --           --Extraction de tout ce qui précède le dernier slash
+   --           Path_Parent : constant String := fichier(fichier'First..Last_Slash);
+   --           Parent_File : P_file;
+         
+   --        begin
+
+   --           --Utilisation de parsePath pour obtenir l'adresse
+   --           Parent_File := parsePath(Path_Parent, current_directory);
+   --           --Recherche d'exception
+   --           if Parent_File = null then
+   --              raise FILE_NOT_EXIST;
+   --           end if;
+
+   --           return Parent_File;
+
+   --        end; 
+   --     end if;
+   --  end extractParent;
+
+function extractParent (fichier : in String; current_directory : in P_file) return P_file is
+   
+   Last_Slash : Integer := 0;
+   FILE_NOT_EXIST: Exception;
+   EMPTY_STRING: Exception;
+
+begin
+   -- 1. Sécurité
+   if fichier'Length = 0 then
+      raise EMPTY_STRING;
+   end if;
+
+   -- 2. Recherche du dernier slash
+   Last_Slash := Ada.Strings.Fixed.Index
+     (Source  => fichier,
+      Pattern => "/",
+      Going   => Ada.Strings.Backward);
+
+   -- 3. Logique de décision
+   if Last_Slash = 0 then
+      -- Cas : "fichier", ".", ".." 
+      -- Il n'y a pas de slash, donc le parent est par définition 
+      -- l'endroit où l'on se trouve (ou le parent de l'endroit où l'on se trouve pour "..")
+      
+      if fichier = "." then
+         return current_directory.rep_parent; -- Le parent du courant
+      elsif fichier = ".." then
+         -- Le parent du parent
+         if current_directory.rep_parent = null then
+            return current_directory; 
+         else
+            return current_directory.rep_parent.rep_parent;
+         end if;
+      else
+         -- C'est un simple nom "readme.txt", son parent est ici
+         return current_directory;
+      end if;
+
+   elsif Last_Slash = fichier'Last then
+      -- Cas : "dossier/" ou "./" ou "../"
+      -- On retire le slash final et on recommence (récursion)
+      return extractParent(fichier(fichier'First .. fichier'Last - 1), current_directory);
+
+   else
+      -- Cas : "./fichier", "../dossier/test", "/a/b/c"
+      -- On extrait tout ce qui est AVANT le dernier slash
+      declare
+         Path_Parent : constant String := fichier(fichier'First .. Last_Slash - 1);
+         -- Si Path_Parent devient vide (cas de "/fichier"), c'est la racine
+         Final_Path  : constant String := (if Path_Parent = "" then "/" else Path_Parent);
+         Resultat    : P_file;
+      begin
+         -- On laisse parsePath faire tout le travail (gestion du . et .. incluse)
+         Resultat := parsePath(Final_Path, current_directory);
+         
+         if Resultat = null then
+            raise FILE_NOT_EXIST;
+         end if;
+         return Resultat;
+      end;
+   end if;
+
+end extractParent;
+
 --------------------------------------------------------------------------------------------------
 
    function findChild(children_list : in List; child_to_find : in String) return P_file is
@@ -325,15 +450,53 @@ package body sgf is
 
       children_list : P_list;
 
-      begin
+   begin
 
-         children_list := getChildren(current_directory);
+      children_list := getChildren(current_directory);
 
-         for child of children_list.all loop
-            Put_Line(To_String(child.nom));
-         end loop;
+      for child of children_list.all loop
+         Put_Line(To_String(child.nom));
+      end loop;
 
    end displayFileContent;
+
+--------------------------------------------------------------------------------------
+
+   --  procedure removeFile (fichier: in String; current_directory: in out P_file) is
+
+   --     temp: P_file;
+
+   --  begin
+
+   --     temp := parsePath(fichier, current_directory);
+      
+
+   --  end removeFile;
+
+--------------------------------------------------------------------------------------
+
+   procedure renameOrMove(source_file: in String; new_file: in String; current_directory: in P_file) is
+
+      temp_source: P_file;
+      temp_new: P_file;
+
+      parent_source : P_file;
+      parent_new : P_file;
+
+
+   begin
+
+      --Le but est d'extraire le répertoire parent souhaité
+      temp_source := parsePath(source_file, current_directory);
+      temp_new := parsePath(new_file);
+
+      parent_source := extractParent(source_file, current_directory);
+      parent_new := extractParent(new_file, current_directory);
+
+      
+
+---------------------------------------------------------------------------------------
+
 
 
 end SGF;

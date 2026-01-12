@@ -120,7 +120,7 @@ package SGF is
    --  --Pré : modified_file existe dans le sgf et le chemin est valide
    --  --Post : le fichier est changé de place ou renommé
    --  --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé, et quelle ait changé si changement de nom ou de repertoire suf si le chemin donné est erroné
-   --  procedure rename_or_move( modified_file : in File; new_path : in string);
+   procedure rename_or_move( modified_file : in File; new_path : in string);
 
    --  --Nom : copy_file_or_folder (cp)
    --  --Objectif : copier le fichier ou rep dans un autre repertoire

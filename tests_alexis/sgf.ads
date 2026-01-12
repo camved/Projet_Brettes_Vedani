@@ -7,7 +7,17 @@ with Ada.Characters.Handling;    use Ada.Characters.Handling;
 with Ada.Containers.Doubly_Linked_Lists; 
 with Ada.Containers;             use Ada.Containers;
 
-package sgf is 
+package sgf is
+
+   VOID_INVALID_PATH: Exception;
+   VOID_ROOT_LOCATION: Exception;
+   VOID_CHILD_ERROR: Exception;
+   VOID_POINTER_ERROR: Exception;
+   EMPTY_STRING: Exception;
+   INVALID_FIRST_CHAR: Exception;
+   NOT_IN_THIS_DIRECTORY: Exception;
+   NOT_A_DIRECTORY: Exception;
+   FILE_NOT_EXIST: Exception;
 
    type file; --Déclaration partielle pour permettre le pointeur suivant
 
@@ -107,7 +117,7 @@ package sgf is
    --Objectif : Renvoyer l'adresse du répertoire ou du fichier visé
    --Paramètre :
       -- fichier : in String
-      -- ID : out Address
+      -- current_directory : in P_file
    --Pré : 
       --String de taille > 0
       --Premier caractère lettre ou . ou /
@@ -117,7 +127,29 @@ package sgf is
    --Exceptions : 
       --=> EMPTY_STRING
       --=> INVALID_FIRST_CHAR
+      --=> FILE_NOT_EXIST
    function parsePath (fichier: in String; current_directory: in P_file) return P_file;
+
+-------------------------------------------------------------------------------------------------
+
+   --Nom: extractParent
+   --Objectif : Renvoyer l'adresse du parent du fichier visé
+   --Exemple : entrée "/file1/file2/file.txt" renvoie l'adresse de /file1/file2
+   --Paramètres : 
+      -- fichier : in String
+      -- current_directory : in P_file
+   --Pré :
+      --String de taille > 0
+      --Premier caractère lettre ou . ou /
+   --Post : 
+      --Adresse valide renvoyée en hexadécimale
+      --Erreur renvoyée si n'existe pas
+   --Exceptions : 
+      --=> EMPTY_STRING
+      --=> INVALID_FIRST_CHAR
+      --=> FILE_NOT_EXIST
+   function extractParent (fichier: in String; current_directory: in P_file) return P_file;
+
 
 -------------------------------------------------------------------------------------------------
 
@@ -178,6 +210,16 @@ package sgf is
    --Post : tout le contenu s'affiche
    --Test : tout s'affiche à l'écran après l'appel de la fonction
    procedure displayFileContent(current_directory: in P_file);
+
+-------------------------------------------------------------------------------------------------------
+
+   --Nom : renameOrMove (rm)
+   --Objectif : change le nom ou déplace le fichier
+   --Paramètres : modified_file in, type P_file, new_path in, type String
+   --Pré : modified_file existe dans le sgf et le chemin est valide
+   --Post : le fichier est changé de place ou renommé
+   --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé, et quelle ait changé si changement de nom ou de repertoire suf si le chemin donné est erroné
+   procedure renameOrMove(source_file : in String; new_file: in string; current_directory: in P_file);
 
 
 end SGF;
