@@ -72,16 +72,18 @@ begin
    --  SGF.changeDirectory("raptor_baby");
    Put_Line ("test_raptor_dir");
    current := SGF.getCurrentDirectory;
+   SGF.changeDirectory("raptor_baby");
+   current := SGF.getCurrentDirectory;
+   Put_Line("couille dans le potage");
 
-   SGF.displayFile(current);
 
+   
 
-   -------TEST create file avec changement de localisation-----
-   Put_Line("--- Test create file ---");
+   SGF.copy_file ("/Raptor_directory/raptor_baby/", "ankilosaure", current);
 
-   SGF.createFile("raptor_baby", False);
+   SGF.deleteFile("./raptor_baby/ankilosaure", current);
   
 
 
 
-end tests_sgf;
+end tests_sgf; 

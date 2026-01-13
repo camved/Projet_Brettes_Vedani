@@ -2,6 +2,7 @@ with SGF;
 with Ada.Strings.Fixed; 
 with Ada.Strings;
 
+
 package body SGF is
 
 
@@ -12,74 +13,105 @@ package body SGF is
 
    procedure initRacine (root: in out file) is
       pointer_root : P_file;
-   begin
-      pointer_root := new file;
-      pointer_root.nom := To_Unbounded_String("");
-      pointer_root.droits_acces := "rwxrwxrwx";
-      pointer_root.taille := 1; --Volume total divisé par 10Ko pour qu'on ne manie qu'une unité simple
-      pointer_root.rep_parent := null;
-      pointer_root.L_enfant := new File_List_Pkg.List;
-      pointer_root.isRepo := True;
+      begin
+         pointer_root := new file;
+         pointer_root.nom := To_Unbounded_String("");
+         pointer_root.droits_acces := "rwxrwxrwx";
+         pointer_root.taille := 1; --Volume total divisé par 10Ko pour qu'on ne manie qu'une unité simple
+         pointer_root.rep_parent := null;
+         pointer_root.L_enfant := new File_List_Pkg.List;
+         pointer_root.isRepo := True;
 
-      root := pointer_root.all;
-      current_directory := pointer_root;
-      
+         root := pointer_root.all;
+         current_directory := pointer_root;
+         
 
-   end initRacine;
+      end initRacine;
 
    ----------
       
-procedure createFile (nom_or_path: in String; isRepo : in Boolean) is
-      pointer_created : P_file;
-      nom : Unbounded_String;
-      
-      Target_Parent : P_file; 
-      Last_Slash : Natural;
-
-   begin
-      
-      if containsSlash(nom_or_path) then
-         Last_Slash := Ada.Strings.Fixed.Index(nom_or_path, "/", Going => Ada.Strings.Backward);
+   procedure createFile (nom_or_path: in String; isRepo : in Boolean) is
+         pointer_created : P_file;
+         nom : Unbounded_String;
          
-         if Last_Slash = nom_or_path'First then
-            Target_Parent := parsePath("/", SGF.current_directory);
+         Target_Parent : P_file; 
+         Last_Slash : Natural;
+
+      begin
+
+         Target_Parent := extractParent(nom_or_path, SGF.current_directory);
+
+         if containsSlash(nom_or_path) then
+            Last_Slash := Ada.Strings.Fixed.Index(nom_or_path, "/", Going => Ada.Strings.Backward);
+            
+            nom := To_Unbounded_String(nom_or_path(Last_Slash + 1 .. nom_or_path'Last));
          else
-            Target_Parent := parsePath(nom_or_path(nom_or_path'First .. Last_Slash - 1), SGF.current_directory);
+            nom := To_Unbounded_String(nom_or_path);
          end if;
+         pointer_created := new file;
+         pointer_created.nom := nom;
+         pointer_created.droits_acces := "rwxrwxrwx";
+         pointer_created.taille := 1;
+         pointer_created.rep_parent := Target_Parent; 
          
-         nom := To_Unbounded_String(nom_or_path(Last_Slash + 1 .. nom_or_path'Last));
-         
-      else
-         
-         Target_Parent := SGF.current_directory;
-         nom := To_Unbounded_String(nom_or_path);
-      end if;
+         pointer_created.isRepo := isRepo;
 
-      pointer_created := new file;
-      pointer_created.nom := nom;
-      pointer_created.droits_acces := "rwxrwxrwx";
-      pointer_created.taille := 1;
-      
-      pointer_created.rep_parent := Target_Parent; 
-      
-      pointer_created.isRepo := isRepo;
+         if isRepo then
+            pointer_created.L_enfant := new File_List_Pkg.List; 
+         else
+            pointer_created.L_enfant := null; 
+         end if;
 
-      if isRepo then
-         pointer_created.L_enfant := new File_List_Pkg.List; 
-      else
-         pointer_created.L_enfant := null; 
-      end if;
+         if pointer_created.rep_parent = null then
+            Put_Line("Erreur : Impossible de trouver le dossier parent.");
+         elsif pointer_created.rep_parent.L_enfant = null then
+            Put_Line("Erreur : La destination '" & To_String(pointer_created.rep_parent.nom) & "' n'est pas un répertoire.");
+         else
+            pointer_created.rep_parent.L_enfant.Append(pointer_created);
+         end if;
 
-      if pointer_created.rep_parent.L_enfant = null then
-          Put_Line("Erreur : Le chemin de destination n'est pas un dossier valide.");
-      else
-          pointer_created.rep_parent.L_enfant.Append(pointer_created);
-      end if;
-
-      displayFile (pointer_created);
-
+         displayFile (pointer_created);
 
    end createFile;
+
+
+   procedure deleteFile (name_or_path: in String ; current_dir : P_file) is
+      pointer_deleted : P_file;
+      nom : Unbounded_String;
+      Target_Parent : P_file; 
+      Last_Slash : Natural;
+      children_list_pointer : P_list;
+      use File_List_Pkg; 
+      C : Cursor;
+      
+
+
+      begin
+
+         Target_Parent := extractParent(name_or_path, current_dir);
+
+         if containsSlash(name_or_path) then
+            Last_Slash := Ada.Strings.Fixed.Index(name_or_path, "/", Going => Ada.Strings.Backward);
+            
+            nom := To_Unbounded_String(name_or_path(Last_Slash + 1 .. name_or_path'Last));
+         else
+            nom := To_Unbounded_String(name_or_path);
+         end if;
+
+         children_list_pointer := getChildren(Target_Parent);
+         pointer_deleted := findChild(children_list_pointer.all, name_or_path);
+         displayFile(Target_Parent);
+
+         C := Find(Container => children_list_pointer.all, 
+             Item      => pointer_deleted);
+
+         if Has_Element(C) then
+            children_list_pointer.all.Delete(C);
+         end if;
+
+         
+         displayFile (Target_Parent);
+      end deleteFile;
 
    ----------
 
@@ -106,7 +138,7 @@ procedure createFile (nom_or_path: in String; isRepo : in Boolean) is
 
    function getChildren(adress_file : in P_file) return P_list is 
 
-      begin
+   begin
       if adress_file.all.L_enfant.Is_Empty then 
          raise VOID_CHILD_ERROR with "Error : no child in this directory";
       else 
@@ -142,23 +174,22 @@ procedure createFile (nom_or_path: in String; isRepo : in Boolean) is
 
    ----------
 
-   procedure changeDirectory(name_file_to_go : in String) is
-
-      current : P_file;
-      next_dir : P_file;
-
+   procedure changeDirectory(path : in String) is
+         Destination : P_file;
       begin
-         current := SGF.current_directory;
-         next_dir := SGf.findChild(current.L_enfant.all, name_file_to_go);
 
-         if next_dir = null then 
-            raise NOT_IN_THIS_DIRECTORY with "Error : no such directories in this directory";
-         elsif not(next_dir.isRepo) then
-            raise NOT_A_DIRECTORY with "Error : not a directory";
-         else
-            SGF.current_directory := next_dir;
-         end if; 
+      Destination := SGF.extractParent(path,SGF.current_directory);
 
+         if Destination = null then
+            return;
+         end if;
+
+         if not Destination.isRepo then
+            return;
+         end if;
+
+         SGF.current_directory := Destination;
+         
 
       end changeDirectory;
       
@@ -364,13 +395,13 @@ procedure createFile (nom_or_path: in String; isRepo : in Boolean) is
    ----------
 
    function containsSlash(Text : in String) return Boolean is
-   begin
-      return (Ada.Strings.Fixed.Index(Text, "/") > 0);
-   end containsSlash;
+      begin
+         return (Ada.Strings.Fixed.Index(Text, "/") > 0);
+      end containsSlash;
 
    ----------
 
-   function getName(path : String) return unbounded_string is
+   function getName(path : in String) return unbounded_string is
 
       last_Slash_Index : Natural;
 
@@ -388,6 +419,96 @@ procedure createFile (nom_or_path: in String; isRepo : in Boolean) is
             return(To_Unbounded_String(path));
          end if;
       end getName;
+
+   ----------
+
+   function extractParent (fichier : in String; current_directory : in P_file) return P_file is
+   
+      Last_Slash : Integer := 0;
+      FILE_NOT_EXIST: Exception;
+      EMPTY_STRING: Exception;
+
+      begin
+         -- 1. Sécurité
+         if fichier'Length = 0 then
+            raise EMPTY_STRING;
+         end if;
+
+         -- 2. Recherche du dernier slash
+         Last_Slash := Ada.Strings.Fixed.Index
+         (Source  => fichier,
+            Pattern => "/",
+            Going   => Ada.Strings.Backward);
+
+         -- 3. Logique de décision
+         if Last_Slash = 0 then
+            -- Cas : "fichier", ".", ".." 
+            -- Il n'y a pas de slash, donc le parent est par définition 
+            -- l'endroit où l'on se trouve (ou le parent de l'endroit où l'on se trouve pour "..")
+            
+            if fichier = "." then
+               return current_directory.rep_parent; -- Le parent du courant
+            elsif fichier = ".." then
+               -- Le parent du parent
+               if current_directory.rep_parent = null then
+                  return current_directory; 
+               else
+                  return current_directory.rep_parent.rep_parent;
+               end if;
+            else
+               -- C'est un simple nom "readme.txt", son parent est ici
+               return current_directory;
+            end if;
+
+         elsif Last_Slash = fichier'Last then
+            -- Cas : "dossier/" ou "./" ou "../"
+            -- On retire le slash final et on recommence (récursion)
+            return extractParent(fichier(fichier'First .. fichier'Last - 1), current_directory);
+
+         else
+            -- Cas : "./fichier", "../dossier/test", "/a/b/c"
+            -- On extrait tout ce qui est AVANT le dernier slash
+            declare
+               Path_Parent : constant String := fichier(fichier'First .. Last_Slash - 1);
+               -- Si Path_Parent devient vide (cas de "/fichier"), c'est la racine
+               Final_Path  : constant String := (if Path_Parent = "" then "/" else Path_Parent);
+               Resultat    : P_file;
+            begin
+               -- On laisse parsePath faire tout le travail (gestion du . et .. incluse)
+               Resultat := parsePath(Final_Path, current_directory);
+               
+               if Resultat = null then
+                  raise FILE_NOT_EXIST;
+               end if;
+               return Resultat;
+            end;
+         end if;
+
+      end extractParent;
+
+   
+   ----------
+
+   procedure copy_file(path : in String ; copied_name : in String; current_dir : P_file ) is
+      
+      parent : P_file;
+      to_be_copied : P_file;
+      children_list_current : P_list;
+
+      begin
+
+         children_list_current := getChildren(current_dir);
+         to_be_copied := findChild(children_list_current.all, copied_name);
+         displayFile (to_be_copied);
+         
+         parent := extractParent(path, current_dir);
+         SGF.current_directory := parent;
+         createFile (To_String(to_be_copied.nom), to_be_copied.isRepo);
+         displayFile (SGF.current_directory);
+         SGF.current_directory := current_dir;
+         displayFile (SGF.current_directory);
+
+      end copy_file;
 
 
 end SGF;

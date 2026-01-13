@@ -7,6 +7,7 @@ with Ada.Characters.Handling;    use Ada.Characters.Handling;
 with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Strings.Fixed;          use Ada.Strings.Fixed;
 
+
 package SGF is 
 
    type file; --Déclaration partielle pour permettre le pointeur suivant
@@ -84,13 +85,13 @@ package SGF is
    function getCurrentDirectory return P_file;
 
    
-   --Nom : getCurrentPath(pwd)
-   --Objectif : Retourner le chemin absolu du fichier actuelle
-   --Paramètres : current_file in, type P_file
-   --Pré : current_file existe dans le sgf
-   --Post : le chemin absolu du fichier actuel est retourné
-   --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
-   procedure changeDirectory(name_file_to_go : in String);
+   --Nom : changeDirectory(cd)
+   --Objectif : changer la valeur de current_file
+   --Paramètres : name_file_to_go
+   --Pré : 
+   --Post : 
+   --Test :
+   procedure changeDirectory(path : in String) ;
 
       
    --Nom : getCurrentPath(pwd)
@@ -164,6 +165,24 @@ package SGF is
 
    function containsSlash(Text : in String) return Boolean;
 
+      --Nom: extractParent
+   --Objectif : Renvoyer l'adresse du parent du fichier visé
+   --Exemple : entrée "/file1/file2/file.txt" renvoie l'adresse de /file1/file2
+   --Paramètres : 
+      -- fichier : in String
+      -- current_directory : in P_file
+   --Pré :
+      --String de taille > 0
+      --Premier caractère lettre ou . ou /
+   --Post : 
+      --Adresse valide renvoyée en hexadécimale
+      --Erreur renvoyée si n'existe pas
+   --Exceptions : 
+      --=> EMPTY_STRING
+      --=> INVALID_FIRST_CHAR
+      --=> FILE_NOT_EXIST
+   function extractParent (fichier: in String; current_directory: in P_file) return P_file;
+
    --  --Nom : display_file_all (ls -r)
    --  --Objectif : afficher tous le contenus du repertoire actuel et des répertoire qu'il contient 
    --  --Paramètres : current_file in, type P_file, path in , type string
@@ -180,13 +199,15 @@ package SGF is
    --  --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé, et quelle ait changé si changement de nom ou de repertoire suf si le chemin donné est erroné
    --  procedure rename_or_move( modified_file : in File; new_path : in string);
 
-   --  --Nom : copy_file_or_folder (cp)
-   --  --Objectif : copier le fichier ou rep dans un autre repertoire
-   --  --Paramètres : copied in, type P_file, path in String
-   --  --Pré : copied existe dans le  et le chemin est valide
-   --  --Post : le fichier est copié au bon endroit
-   --  --Test : être en mesure de rverifier que le fichier copié est au bonne endroit et identique au premier
-   --  procedure copy_file_or_folder (copied : in File; path : in String);
+   --Nom : copy_file_or_folder (cp)
+   --Objectif : copier le fichier ou rep dans un autre repertoire
+   --Paramètres : path in, type String,  copied_name in, type P_file
+   --Pré : copied existe dans le  et le chemin est valide
+   --Post : le fichier est copié au bon endroit
+   --Test : être en mesure de rverifier que le fichier copié est au bonne endroit et identique au premier
+   procedure copy_file(path : in String ; copied_name : in String; current_dir : P_file );
+
+   procedure deleteFile (name_or_path: in String ; current_dir : P_file);
 
    --  --Nom : assert_same_file (==)
    --  --Objectif : ccomparer deux fichier et vérifier qu'il soit identique ou non
