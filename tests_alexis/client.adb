@@ -15,6 +15,11 @@ begin
 
    initRacine(root);
    menuCreate(current_directory);
+   menuCreate(current_directory);
+   menuCreate(current_directory);
+   menuCreate(current_directory);
    displayFileContent(current_directory);
+   menuChangeDirectory(current_directory);
+   displayFile(current_directory);
 
 end client;

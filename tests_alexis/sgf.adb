@@ -40,7 +40,7 @@ package body sgf is
    begin
    
       pointer_created := new file;
-      pointer_created.nom := To_Unbounded_String(nom);
+      pointer_created.nom := getName(nom);
       pointer_created.droits_acces := "rwxrwxrwx";
       pointer_created.taille := 1;
       pointer_created.rep_parent := current_directory;
@@ -533,6 +533,24 @@ end extractParent;
 
 -------------------------------------------------------------------------------------------
 
+   function getExistingParent(fichier: in String; current_directory: in P_file) return Boolean is
+
+      parent_node: P_file;
+   
+   begin
+
+      parent_node:= extractParent(fichier, current_directory);
+      if parent_node /= null then
+         return True;
+      else
+         return False;
+      end if;
+
+   end getExistingParent; 
+
+
+-------------------------------------------------------------------------------------------
+
    procedure putExisting (fichier: in String; current_directory: in P_file) is
    begin
 
@@ -610,40 +628,40 @@ end extractParent;
 
 -------------------------------------------------------------------------------------------
 
-   procedure interactiveMenu(racine: in P_file; current_directory: in P_file) is
+   --  procedure interactiveMenu(racine: in P_file; current_directory: in P_file) is
 
-      choice: Integer;
+   --     choice: Integer;
 
-   begin
+   --  begin
 
-      loop
-         New_Line;
-         Put_Line("---File Management System---");
-         Put_Line("You are currently in " & Put(To_String(getCurrentPath)));
-         Put_Line("1. Create a file (mkdir or touch)");
-         Put_Line("2. Change directory (cd)");
-         Put_Line("3. Delete a file (rm or rm -r)");
-         Put_Line("4. Move or rename a file (mv)");
-         Put_Line("5. Change the space taken by a file (non-directory)");
-         Put_Line("6. Display the files in directory (ls)");
-         Put_Line("7. Leave");
-         Put_Line("---Enter your choice---");
-      exit when choice = 7;
-      end loop;
+   --     loop
+   --        New_Line;
+   --        Put_Line("---File Management System---");
+   --        Put_Line("You are currently in " & Put(To_String(getCurrentPath)));
+   --        Put_Line("1. Create a file (mkdir or touch)");
+   --        Put_Line("2. Change directory (cd)");
+   --        Put_Line("3. Delete a file (rm or rm -r)");
+   --        Put_Line("4. Move or rename a file (mv)");
+   --        Put_Line("5. Change the space taken by a file (non-directory)");
+   --        Put_Line("6. Display the files in directory (ls)");
+   --        Put_Line("7. Leave");
+   --        Put_Line("---Enter your choice---");
+   --     exit when choice = 7;
+   --     end loop;
 
-      begin
+   --     begin
 
-         Get(choice);
-         Skip_Line;
-         exception
-            when others =>
-               Skip_Line;
-               choice := 0;
-      end;
+   --        Get(choice);
+   --        Skip_Line;
+   --        exception
+   --           when others =>
+   --              Skip_Line;
+   --              choice := 0;
+   --     end;
 
-      case choice is
-         when 1 =>
-            menuCreate(current_directory);
+   --     case choice is
+   --        when 1 =>
+   --           menuCreate(current_directory);
 
 
 --------------------------------------------------------------------------------------------------------------
@@ -657,17 +675,20 @@ end extractParent;
 
       loop
          Put_Line("Please enter the desired file path:");
+         Flush;
          name := To_Unbounded_String(Get_Line);
-         exit when getPathValidity(To_String(name)) and getExisting(extractParent (name, current_directory), current_directory);
+         exit when getPathValidity(To_String(name)) and then getExistingParent(To_String(name), current_directory);
          Put_Line("Invalid path, please try again");
       end loop;
 
       loop
          Put_Line("Is it a directory? y/n");
          Get(isDir);
+         Skip_Line;
          exit when isDir = 'y' or isDir = 'n';
          Put_Line("Please enter one of the specified characters");
       end loop;
+
       if isDir = 'y' then
          createFile(To_String(name), True);
       else 
@@ -688,77 +709,119 @@ end extractParent;
          Put_Line("Please enter the directory you want to move in:");
          name := To_Unbounded_String(Get_Line);
          exit when getExisting(To_String(name), current_directory) and isDirectory (To_String(name), current_directory);
-          
+         Put_Line("Invalid path, please try again");
+      end loop;
+
+      changeDirectory (To_String(name));
+
+   end menuChangeDirectory;
+
+ -----------------------------------------------------------------------------------------------------------
+
+   procedure menuRemoveFile(current_directory: in P_file) is
+
+      name: Unbounded_String;
+      isDir: Character;
+
+   begin
+
+      loop
+         Put_Line("Is the file you wish to remove a directory? y/n");
+         Get(isDir);
+         exit when isDir = 'y' or isDir = 'n';
+         Put_Line("Please enter one of the specified characters");
+      end loop;
+
+      loop
+         Put_Line("Please enter the desired file path:");
+         name := To_Unbounded_String(Get_Line);
+         exit when getPathValidity(To_String(name)) and then getExisting(To_String(name), current_directory);
+         Put_Line("Invalid path, please try again");
+      end loop;
+
+      --  if isDir = 'y' then
+      --     removeFile(To_String(name));
+      --  elsif isDir = 'n' then
+      --     removeFile(To_String(name));
+      --  end if;
+
+   end menuRemoveFile;
+
+-------------------------------------------------------------------------------------------------------------
+
+   --  procedure menuMoveOrRename(current_directory: in P_file);
+
+   --     name
 
 
 -------------------------------------------------------------------------------------------------------------
 
-function getPathValidity (path : in String) return Boolean is
-   
-   function isValidChar(C : in Character) return Boolean is
-   begin
-      return (Is_Alphanumeric(C) or C = '.' or C = '_' or C = '-' or C = '/');
-   end isValidChar;
-
-   finish        : Integer;
-   start         : Integer;
-   segment_count : Integer := 0;
-
-begin
-   -- 1. Vérification de la taille
-   if path'Length = 0 then
-      return False;
-   end if;
-
-   -- 2. Vérification des caractères et des doubles slashes
-   for i in path'Range loop
-      if not isValidChar(path(i)) then
-         return False;
-      end if;
+   function getPathValidity (path : in String) return Boolean is
       
-      -- Interdiction de "//" pour éviter les segments vides ambigus
-      if i < path'Last and then path(i) = '/' and then path(i+1) = '/' then
-         return False;
-      end if;
-   end loop;
-
-   -- 3. Analyse par segments
-   start := path'First;
-   -- Si le chemin est absolu, on commence l'analyse après le premier '/'
-   if path(start) = '/' then
-      start := start + 1;
-   end if;
-
-   while start <= path'Last loop
-      segment_count := segment_count + 1;
-      
-      -- Trouver la fin du segment (prochain '/' ou fin de chaîne)
-      finish := start;
-      while finish <= path'Last and then path(finish) /= '/' loop
-         finish := finish + 1;
-      end loop;
-
-      declare
-         -- Extraction du segment
-         segment : constant String := path(start .. finish - 1);
+      function isValidChar(C : in Character) return Boolean is
       begin
-         -- On autorise "." et ".." partout, donc pas de vérification de position.
-         
-         -- Seule restriction sur le contenu du segment :
-         -- Interdiction des segments constitués uniquement de "-" ou "_"
-         if segment = "-" or segment = "_" then
+         return (Is_Alphanumeric(C) or C = '.' or C = '_' or C = '-' or C = '/');
+      end isValidChar;
+
+      finish        : Integer;
+      start         : Integer;
+      segment_count : Integer := 0;
+
+   begin
+      -- 1. Vérification de la taille
+      if path'Length = 0 then
+         return False;
+      end if;
+
+      -- 2. Vérification des caractères et des doubles slashes
+      for i in path'Range loop
+         if not isValidChar(path(i)) then
             return False;
          end if;
          
-         -- Note : Les fichiers cachés (ex: ".bashrc") ou les noms 
-         -- contenant ces caractères (ex: "my-file_1") sont autorisés.
-      end; 
+         -- Interdiction de "//" pour éviter les segments vides ambigus
+         if i < path'Last and then path(i) = '/' and then path(i+1) = '/' then
+            return False;
+         end if;
+      end loop;
 
-      start := finish + 1;
-   end loop;
+      -- 3. Analyse par segments
+      start := path'First;
+      -- Si le chemin est absolu, on commence l'analyse après le premier '/'
+      if path(start) = '/' then
+         start := start + 1;
+      end if;
 
-   return True;
-end getPathValidity;
+      while start <= path'Last loop
+         segment_count := segment_count + 1;
+         
+         -- Trouver la fin du segment (prochain '/' ou fin de chaîne)
+         finish := start;
+         while finish <= path'Last and then path(finish) /= '/' loop
+            finish := finish + 1;
+         end loop;
+
+         declare
+            -- Extraction du segment
+            segment : constant String := path(start .. finish - 1);
+         begin
+            -- On autorise "." et ".." partout, donc pas de vérification de position.
+            
+            -- Seule restriction sur le contenu du segment :
+            -- Interdiction des segments constitués uniquement de "-" ou "_"
+            if segment = "-" or segment = "_" then
+               return False;
+            end if;
+            
+            -- Note : Les fichiers cachés (ex: ".bashrc") ou les noms 
+            -- contenant ces caractères (ex: "my-file_1") sont autorisés.
+         end; 
+
+         start := finish + 1;
+      end loop;
+
+      return True;
+   end getPathValidity;
 
 ------------------------------------------------------------------------------------------------------
 
@@ -777,6 +840,7 @@ end getPathValidity;
 -------------------------------------------------------------------------------------------------------
 
    function isDirectory(path: in String; current_directory: in P_file) return Boolean is
+   begin
 
       if parsePath(path, current_directory).isRepo then
          return True;

@@ -244,7 +244,19 @@ package sgf is
    function getExisting(fichier: in String; current_directory: in P_file) return Boolean;
 
 -------------------------------------------------------------------------------------------------------
-s
+
+   --Nom : getExistingParent
+   --Objectif: vérifier si le parent d'un fichier existe bien
+   --Paramètres: 
+      --fichier: in String
+      --current_directory: in P_file
+      --return Boolean
+   --Pré:
+   --Post:
+   function getExistingParent(fichier: in String; current_directory: in P_file) return Boolean;
+
+-------------------------------------------------------------------------------------------------------
+
    --Nom: putExisting
    --Objectif: affiche l'état d'existence du fichier
    --Paramètres : 
@@ -316,6 +328,15 @@ s
    --Post:
    procedure menuChangeDirectory(current_directory: in P_file);
 
+---------------------------------------------------------------------------------------------------------
+
+   --Nom: menuRemoveFile
+   --Objectif : guider l'utilisateur dans la supression d'un fichier, qu'il soit répertoire ou fichier
+   --Paramètres :
+      --current_directory: P_file
+   --Pré:
+   --Post:
+   procedure menuRemoveFile(current_directory: in P_file);
 
 ---------------------------------------------------------------------------------------------------------
 
