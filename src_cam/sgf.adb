@@ -194,8 +194,8 @@ package body SGF is
    function findChild(children_list : in List; child_to_find : in String) return P_file is
 
    begin
-      if children_list.Is_Empty then 
-         raise VOID_CHILD_ERROR with "Error : no child in this directory";
+   if children_list.Is_Empty then 
+            return null;
       else
          for child_element of children_list loop
             if To_String(child_element.nom) = child_to_find then
