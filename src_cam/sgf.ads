@@ -43,6 +43,7 @@ package SGF is
    --Post : un répertoire racine créé
    --Test : être en mesure de se déplacer dans le répertoire racine avec cd une fois le répertoire racine créé
     procedure initRacine (root: in out file);
+
    --Nom : createFile
    --Objectif : Créer un fichier dont on choisit le nom, les droits à l'endroit de notre choix.
    --Paramètres :
@@ -88,18 +89,18 @@ package SGF is
    --Nom : changeDirectory(cd)
    --Objectif : changer la valeur de current_file
    --Paramètres : name_file_to_go
-   --Pré : 
-   --Post : 
-   --Test :
+   --Pré : le chemin est valide et mène à un répertoire existant
+   --Post : le current directory du module SGF est bien changé
+   --Test : vérifier que le current directory corrrespond bien au fichier concerné par le chemin
    procedure changeDirectory(path : in String) ;
 
       
-   --Nom : getCurrentPath(pwd)
-   --Objectif : Retourner le chemin absolu du fichier actuelle
-   --Paramètres : current_file in, type P_file
-   --Pré : current_file existe dans le sgf
-   --Post : le chemin absolu du fichier actuel est retourné
-   --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
+   --Nom : displayFile (print)
+   --Objectif : Affiche la structure de donnée "fichier" (File) en donnant un pointeur (P_file)
+   --Paramètres : file_to_show in, type P_file
+   --Pré : file_to_show existe dans le sgf
+   --Post : le fichier donné est affiché sur la console
+   --Test : être en visualiser un fichier créer.
    procedure displayFile(file_to_show : in P_file);
 
    --Nom: parseRelative
@@ -161,8 +162,21 @@ package SGF is
    --Post: l'adresse de la racine est renvoyée
    function findRoot (current_directory:  in P_file) return P_file;
 
+   --Nom : getName
+   --Objectif : extraire le nom d'un fichier manipulé lorsque son chemin est donné
+   --Paramètres : path in, type String
+   --Pré : le cgemin est valide et existe dans le sgf
+   --Post : le nom du fichier (dernière partie du chemin) est retournée
+   --Test : tout s'affiche à l'écran après l'appel de la fonction
    function getName(path : String) return unbounded_string;
 
+   --Nom : containsSlash
+   --Objectif : déterminer si un string contient le symbole "/"
+   --Paramètres : Text in, type String
+   --Pré : 
+   --Post : renvoie true si oui, false si non.
+   --Test : constater que la valeur retournée d'un texte correcpond à la valeur 
+   -- attendue pour un contenant des slashs et l'autre non.
    function containsSlash(Text : in String) return Boolean;
 
       --Nom: extractParent
@@ -204,11 +218,24 @@ package SGF is
    --Paramètres : path in, type String,  copied_name in, type P_file
    --Pré : copied existe dans le  et le chemin est valide
    --Post : le fichier est copié au bon endroit
-   --Test : être en mesure de rverifier que le fichier copié est au bonne endroit et identique au premier
+   --Test : être en mesure de vérifier que le fichier copié est au bonne endroit et identique au premier
    procedure copy_file(path : in String ; copied_name : in String; current_dir : P_file );
-
+   
+   --Nom : delete (~rm)
+   --Objectif : supprimer un fichier ou un répertoire
+   --Paramètres : path in, type String,  current_dir in, type P_file
+   --Pré : le chemin est valide et existe dans le SGF et curren_dir n'est pas vide
+   --Post : l'entité voulue est bien supprimée au bon endroit
+   --Test : être en mesure de vérifier que l'entité supprimée n'existe plus
    procedure deleteFile (name_or_path: in String ; current_dir : P_file);
 
+   --Nom : deleteDirectory (~rm -r)
+   --Objectif : supprimer un répertoire contenant d'autres entités
+   --Paramètres : path in, type String,  current_dir in, type P_file
+   --Pré : le chemin est valide et existe dans le SGF et curren_dir n'est pas vide
+   --Post : l'entité voulue est bien supprimée au bon endroit, et ses enfants aussi
+   --Test : être en mesure de vérifier que l'entité supprimée n'existe plus et ses enfants non plus
+   procedure deleteDirectory (name_or_path: in String ; current_dir : P_file);
    --  --Nom : assert_same_file (==)
    --  --Objectif : ccomparer deux fichier et vérifier qu'il soit identique ou non
    --  --Paramètres : copied in, type P_file, path in String

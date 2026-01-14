@@ -8,10 +8,13 @@ procedure tests_sgf is
    root_children : SGF.P_list;   
    Enfant_Trouve  : SGF.P_file;
    current : SGF.P_File;
+   file_test : P_file;
+   file_test2 : P_file;
+   
 
 begin
 
-   Put("Test de initRacine");
+   Put_Line("--- Test initRacine ---");
    SGF.initRacine(Ma_Racine);
    
    if Ma_Racine.nom /= To_Unbounded_String("") then
@@ -33,10 +36,36 @@ begin
 
   ---------------------------------------------------------
    Put_Line("--- Test create file ---");
-   Put_Line("création de test et trucs, enfants de root");
+   Put_Line("--- file ---");
 
-   SGF.createFile("test", False);
-   SGF.createFile("trucs", False);
+
+   Put_Line ("Dossier parent avant création du fichier");
+
+   displayFile (SGF.getCurrentDirectory);
+   Put_Line ("création du fichier");
+   SGF.createFile("file1", False);
+   file_test := SGF.findChild(SGF.getChildren(SGF.getCurrentDirectory).all, "file1");
+
+   Put_Line ("Dossier parent après création du fichier");
+   SGF.displayFile (SGF.getCurrentDirectory);
+
+
+   if file_test.nom /= To_Unbounded_String("file1") then
+   Put_Line("ÉCHEC : Le nom n'est pas correct.");
+   Put_Line("Attendu : file1");
+   Put_Line("Obtenu  : " & To_String(file_test.nom));
+
+      
+   elsif file_test.isRepo /= False then
+      Put_Line("ÉCHEC : isRepo devrait être True.");   
+   else
+      Put_Line("OK !"); 
+   end if;
+
+   SGF.createFile("file2", False);
+
+
+   ---------------------------------------------------------
 
    Put_Line("--- Test trouver liste ---");
    root_children := SGF.getChildren(SGF.getCurrentDirectory);

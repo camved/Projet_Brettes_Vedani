@@ -1,6 +1,7 @@
 with SGF;
 with Ada.Strings.Fixed; 
 with Ada.Strings;
+with Ada.Unchecked_Deallocation;
 
 
 package body SGF is
@@ -8,6 +9,10 @@ package body SGF is
 
    root: file;
    current_directory : P_file;
+
+   ----------
+
+   procedure Free is new Ada.Unchecked_Deallocation(Object => file, Name => P_file);
 
    ----------
 
@@ -70,49 +75,88 @@ package body SGF is
             pointer_created.rep_parent.L_enfant.Append(pointer_created);
          end if;
 
-         displayFile (pointer_created);
 
    end createFile;
 
+   ----------
 
-   procedure deleteFile (name_or_path: in String ; current_dir : P_file) is
+   procedure delete (name_or_path: in String ; current_dir : P_file) is
       pointer_deleted : P_file;
       nom : Unbounded_String;
       Target_Parent : P_file; 
-      Last_Slash : Natural;
       children_list_pointer : P_list;
       use File_List_Pkg; 
       C : Cursor;
-      
-
 
       begin
 
          Target_Parent := extractParent(name_or_path, current_dir);
+         nom := getName(name_or_path);
+         children_list_pointer := getChildren(Target_Parent);
+         pointer_deleted := findChild(children_list_pointer.all, To_String(nom));
 
-         if containsSlash(name_or_path) then
-            Last_Slash := Ada.Strings.Fixed.Index(name_or_path, "/", Going => Ada.Strings.Backward);
-            
-            nom := To_Unbounded_String(name_or_path(Last_Slash + 1 .. name_or_path'Last));
-         else
-            nom := To_Unbounded_String(name_or_path);
+         if pointer_deleted = null then
+            Put_Line("Erreur : Fichier introuvable.");
+            return;
          end if;
 
-         children_list_pointer := getChildren(Target_Parent);
-         pointer_deleted := findChild(children_list_pointer.all, name_or_path);
-         displayFile(Target_Parent);
-
-         C := Find(Container => children_list_pointer.all, 
-             Item      => pointer_deleted);
-
+         C := Find(Container => children_list_pointer.all, Item => pointer_deleted);
          if Has_Element(C) then
             children_list_pointer.all.Delete(C);
          end if;
 
-         
-         displayFile (Target_Parent);
+         Free(pointer_deleted); 
+
       end deleteFile;
 
+   ----------
+
+   procedure deleteDirectory (name_or_path: in String ; current_dir : P_file) is
+      target_parent : P_file;
+      name_deleted_to_be : Unbounded_String; -- Unbounded pour coller au type record
+      deleted_to_be : P_file;
+      child_cursor : File_List_Pkg.Cursor;
+      child_ptr : P_file;
+      use File_List_Pkg; -- Important pour voir les fonctions de liste
+
+      begin
+         target_parent := extractParent(name_or_path , current_dir);
+         name_deleted_to_be := getName(name_or_path);
+         deleted_to_be := findChild(target_parent.L_enfant.all, To_String(name_deleted_to_be)); 
+
+         if deleted_to_be = null then
+            Put_Line("Dossier introuvable.");
+            return;
+         end if;
+
+         if not deleted_to_be.isRepo then
+            Put_Line("Erreur : Ce n'est pas un dossier.");
+            return;
+         end if;
+
+
+         while not deleted_to_be.L_enfant.all.Is_Empty loop
+            
+            child_ptr := deleted_to_be.L_enfant.all.First_Element;
+            
+            if child_ptr.isRepo then
+
+               deleteDirectory(To_String(child_ptr.nom), deleted_to_be); 
+            else
+               deleteFile(To_String(child_ptr.nom), deleted_to_be);
+            end if;
+         end loop;
+
+
+         child_cursor := Find(target_parent.L_enfant.all, deleted_to_be);
+         if Has_Element(child_cursor) then
+            target_parent.L_enfant.all.Delete(child_cursor);
+         end if;
+         
+         Free(deleted_to_be);
+
+      end deleteDirectory;
+   
    ----------
 
    function getCurrentPath(pwd_file : in P_file) return Unbounded_String is
@@ -133,8 +177,6 @@ package body SGF is
    end getCurrentPath;
 
    ----------
-
-   
 
    function getChildren(adress_file : in P_file) return P_list is 
 
@@ -243,6 +285,8 @@ package body SGF is
 
    end displayFile;
 
+   ----------
+
    procedure displayFileContent(current_directory : in P_file) is
 
       children_list : P_list;
@@ -259,7 +303,7 @@ package body SGF is
 
    ----------
 
-      function  parseRelative (fichier: in String; current_directory: in P_file) return P_file is
+   function  parseRelative (fichier: in String; current_directory: in P_file) return P_file is
 
       First_Slash : Integer := 0; --permet de gérer l'avancée du découpage
 
@@ -486,7 +530,6 @@ package body SGF is
 
       end extractParent;
 
-   
    ----------
 
    procedure copy_file(path : in String ; copied_name : in String; current_dir : P_file ) is
@@ -499,14 +542,11 @@ package body SGF is
 
          children_list_current := getChildren(current_dir);
          to_be_copied := findChild(children_list_current.all, copied_name);
-         displayFile (to_be_copied);
          
          parent := extractParent(path, current_dir);
          SGF.current_directory := parent;
          createFile (To_String(to_be_copied.nom), to_be_copied.isRepo);
-         displayFile (SGF.current_directory);
          SGF.current_directory := current_dir;
-         displayFile (SGF.current_directory);
 
       end copy_file;
 
