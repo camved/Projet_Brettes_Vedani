@@ -236,6 +236,8 @@ package SGF is
    --Post : l'entité voulue est bien supprimée au bon endroit, et ses enfants aussi
    --Test : être en mesure de vérifier que l'entité supprimée n'existe plus et ses enfants non plus
    procedure deleteDirectory (name_or_path: in String ; current_dir : P_file);
+
+   
    --  --Nom : assert_same_file (==)
    --  --Objectif : ccomparer deux fichier et vérifier qu'il soit identique ou non
    --  --Paramètres : copied in, type P_file, path in String
