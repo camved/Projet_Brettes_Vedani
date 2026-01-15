@@ -57,8 +57,7 @@ package body SGF is
          pointer_created.nom := nom;
          pointer_created.droits_acces := "rwxrwxrwx";
          pointer_created.taille := 1;
-         pointer_created.rep_parent := Target_Parent; 
-         
+         pointer_created.rep_parent := Target_Parent;
          pointer_created.isRepo := isRepo;
 
          if isRepo then
@@ -107,7 +106,7 @@ package body SGF is
 
          Free(pointer_deleted); 
 
-      end deleteFile;
+      end delete;
 
    ----------
 
@@ -143,7 +142,7 @@ package body SGF is
 
                deleteDirectory(To_String(child_ptr.nom), deleted_to_be); 
             else
-               deleteFile(To_String(child_ptr.nom), deleted_to_be);
+               delete(To_String(child_ptr.nom), deleted_to_be);
             end if;
          end loop;
 
@@ -217,10 +216,14 @@ package body SGF is
    ----------
 
    procedure changeDirectory(path : in String) is
-         Destination : P_file;
+         parent_destination : P_file;
+         destination : P_file;
+         parent_children : P_list;
+         destination_name : Unbounded_String;
       begin
 
-      Destination := SGF.extractParent(path,SGF.current_directory);
+         parent_destination := SGF.extractParent(path,SGF.current_directory);
+         destination_name := SGF.getName(path);
 
          if Destination = null then
             return;
@@ -230,7 +233,9 @@ package body SGF is
             return;
          end if;
 
-         SGF.current_directory := Destination;
+         parent_children := getChildren(parent_destination);
+         destination := findChild(parent_children.all, To_String(destination_name));
+         SGF.current_directory := destination;
          
 
       end changeDirectory;

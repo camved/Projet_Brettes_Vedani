@@ -64,30 +64,36 @@ begin
 
    SGF.createFile("file2", False);
 
+   SGF.createFile ("repo1", True);
+   SGF.createFile("repo2/pipi", False);
+
 
    ---------------------------------------------------------
 
-   Put_Line("--- Test trouver liste ---");
-   root_children := SGF.getChildren(SGF.getCurrentDirectory);
+   --  Put_Line("--- Test trouver liste ---");
+   --  root_children := SGF.getChildren(SGF.getCurrentDirectory);
 
-   Put_Line("--- Test récupérer enfant ---");
+   --  Put_Line("--- Test récupérer enfant ---");
 
-   Enfant_Trouve := SGF.findChild(root_children.all, "test");
+   --  Enfant_Trouve := SGF.findChild(root_children.all, "test");
 
-   if Enfant_Trouve /= null then
-      Put_Line("SUCCES : Enfant 'test' trouvé !");
-   else
-      Put_Line("ECHEC : Enfant introuvable.");
-   end if;
+   --  if Enfant_Trouve /= null then
+   --     Put_Line("SUCCES : Enfant 'test' trouvé !");
+   --  else
+   --     Put_Line("ECHEC : Enfant introuvable.");
+   --  end if;
 
-   Put_Line ("Test pwd sans le chemin");
+   --  Put_Line ("Test pwd sans le chemin");
    
+   --  current := SGF.getCurrentDirectory;
+
+   --  Put(To_String(SGF.getCurrentPath(current)));
+   --  Put_Line("SUCCES : chemin trouvé !");
+
+   Put_Line ("CD");
+   SGF.changeDirectory("file1");
    current := SGF.getCurrentDirectory;
-
-   Put(To_String(SGF.getCurrentPath(current)));
-   Put_Line("SUCCES : chemin trouvé !");
-
-   --  SGF.change_directory("Raptor");
+   displayFile (current);
    --  SGF.createFile ("Raptor_file", False);
    --  SGF.change_directory("Raptor_file");
    SGF.createFile ("Raptor_directory", True);
@@ -105,12 +111,6 @@ begin
    current := SGF.getCurrentDirectory;
    Put_Line("couille dans le potage");
 
-
-   
-
-   SGF.copy_file ("/Raptor_directory/raptor_baby/", "ankilosaure", current);
-
-   SGF.deleteFile("./raptor_baby/ankilosaure", current);
   
 
 

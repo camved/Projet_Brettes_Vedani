@@ -227,7 +227,7 @@ package SGF is
    --Pré : le chemin est valide et existe dans le SGF et curren_dir n'est pas vide
    --Post : l'entité voulue est bien supprimée au bon endroit
    --Test : être en mesure de vérifier que l'entité supprimée n'existe plus
-   procedure deleteFile (name_or_path: in String ; current_dir : P_file);
+   procedure delete (name_or_path: in String ; current_dir : P_file);
 
    --Nom : deleteDirectory (~rm -r)
    --Objectif : supprimer un répertoire contenant d'autres entités
