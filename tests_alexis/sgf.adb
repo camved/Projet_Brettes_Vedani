@@ -1,7 +1,13 @@
+with sgf;
+with Ada.Unchecked_Deallocation;
 package body sgf is
 
+   procedure Free is new Ada.Unchecked_Deallocation(Object => file, Name => P_file);
+
    procedure initRacine (root: in out file) is
+
       pointer_root : P_file;
+   
    begin
       pointer_root := new file;
       pointer_root.nom := To_Unbounded_String("");
@@ -43,7 +49,7 @@ package body sgf is
       pointer_created.nom := getName(nom);
       pointer_created.droits_acces := "rwxrwxrwx";
       pointer_created.taille := 1;
-      pointer_created.rep_parent := current_directory;
+      pointer_created.rep_parent := sgf.extractParent(nom, sgf.current_directory);
       pointer_created.L_enfant := null;
       pointer_created.isRepo := isRepo;
 
@@ -59,24 +65,28 @@ package body sgf is
 
 --------------------------------------------------------------------------------------------------
 
-  procedure changeDirectory(path : in String) is
-         Destination : P_file;
-      begin
+   procedure changeDirectory(path : in String) is
+      Destination : P_file;
+   begin
+      -- Résolution du chemin complet
+      Destination := SGF.parsePath(path, SGF.current_directory);
 
-      Destination := SGF.extractParent(path,SGF.current_directory);
+      -- Vérification de l'existence
+      if Destination = null then
+         -- On lève une exception si le chemin n'aboutit à rien
+         raise VOID_INVALID_PATH with "Path not found: " & path;
+      end if;
 
-         if Destination = null then
-            return;
-         end if;
+      -- Vérification du type (Dossier vs Fichier)
+      if not Destination.isRepo then
+         -- On lève l'exception spécifique demandée
+         raise NOT_A_DIRECTORY with To_String(Destination.nom) & " is a file.";
+      end if;
 
-         if not Destination.isRepo then
-            return;
-         end if;
+      -- Changement effectif du répertoire courant
+      SGF.current_directory := Destination;
 
-         SGF.current_directory := Destination;
-         
-
-      end changeDirectory;
+   end changeDirectory;
 
 ---------------------------------------------------------------------------------------------------
 
@@ -129,10 +139,10 @@ package body sgf is
             -- cas général
             else
 
-               Prochain := findChild(current_directory.L_enfant.all, Segment);
+               Prochain := findChild(current_directory.L_enfant.all, Segment); 
 
                if Prochain = null then
-                  raise VOID_INVALID_PATH;
+                  raise VOID_INVALID_PATH; 
                elsif Reste /= "" and then not Prochain.isRepo then
                   raise VOID_INVALID_PATH with "Pas un répertoire.";
                else
@@ -176,16 +186,16 @@ package body sgf is
 
    begin
    
-      if fichier'Length = 0 then
-         raise EMPTY_STRING;
+      if not getPathValidity (fichier) then
+         raise VOID_INVALID_PATH;
+      end if; 
+
+      if fichier(fichier'First) = '/' then
+         return(parseAbsolute(fichier, current_directory)); 
+      elsif (fichier(fichier'First) = '.') or Is_Letter (fichier(fichier'First)) then
+         return(parseRelative(fichier, current_directory));
       else
-         if fichier(fichier'First) = '/' then
-            return(parseAbsolute(fichier, current_directory)); 
-         elsif (fichier(fichier'First) = '.') or Is_Letter (fichier(fichier'First)) then
-            return(parseRelative(fichier, current_directory));
-         else
-            raise INVALID_FIRST_CHAR;
-         end if;
+         raise INVALID_FIRST_CHAR;
       end if;
 
    end parsePath;
@@ -448,44 +458,137 @@ end extractParent;
 
 --------------------------------------------------------------------------------------
 
-   --  procedure removeFile (fichier: in String; current_directory: in out P_file) is
+   procedure delete (name_or_path: in String ; current_dir : P_file) is
+      pointer_deleted : P_file;
+      nom : Unbounded_String;
+      Target_Parent : P_file; 
+      children_list_pointer : P_list;
+      use File_List_Pkg; 
+      C : Cursor;
 
-   --     temp: P_file;
+      begin
 
-   --  begin
+         Target_Parent := extractParent(name_or_path, current_dir);
 
-   --     temp := parsePath(fichier, current_directory);
+         if Target_Parent = null then
+            raise VOID_INVALID_PATH;
+         end if;
+
+         nom := getName(name_or_path);
+         children_list_pointer := getChildren(Target_Parent);
+         pointer_deleted := findChild(children_list_pointer.all, To_String(nom));
+
+         if pointer_deleted = null then
+            raise VOID_POINTER_ERROR;
+         end if;
+
+         if pointer_deleted.isRepo then
+         -- On refuse de supprimer un dossier avec cette procédure simple
+         -- car cela créerait des fuites mémoires pour ses enfants.
+            raise NOT_A_FILE;
+         end if;
+
+         C := Find(Container => children_list_pointer.all, Item => pointer_deleted);
+         if Has_Element(C) then
+            children_list_pointer.all.Delete(C);
+         end if;
+
+         Free(pointer_deleted); 
+
+      end delete;
+
+   ----------------------------------------------------------------------------------------
+
+   procedure deleteDirectory (name_or_path: in String ; current_dir : P_file) is
+
+      target_parent : P_file;
+      name_deleted_to_be : Unbounded_String; -- Unbounded pour coller au type record
+      deleted_to_be : P_file;
+      child_cursor : File_List_Pkg.Cursor;
+      child_ptr : P_file;
+      use File_List_Pkg; -- Important pour voir les fonctions de liste
+
+   begin
+
+      if parseIsAncestor (name_or_path, current_dir) then
+         raise IS_PARENT;
+      end if;
+
+      target_parent := extractParent(name_or_path , current_dir);
+
+      if target_parent = null then
+         raise VOID_INVALID_PATH;
+      end if;
+
+      name_deleted_to_be := getName(name_or_path);
+      deleted_to_be := findChild(target_parent.L_enfant.all, To_String(name_deleted_to_be)); 
+
+      if deleted_to_be = null then
+         raise DIRECTORY_NOT_FOUND;
+      end if;
+
+      if not deleted_to_be.isRepo then
+         raise NOT_A_DIRECTORY;
+      end if;
+
+
+      while not deleted_to_be.L_enfant.all.Is_Empty loop
+         
+         child_ptr := deleted_to_be.L_enfant.all.First_Element;
+         
+         if child_ptr.isRepo then
+            deleteDirectory(To_String(child_ptr.nom), deleted_to_be); 
+         else
+            delete(To_String(child_ptr.nom), deleted_to_be);
+         end if;
+
+      end loop;
+
+      child_cursor := Find(target_parent.L_enfant.all, deleted_to_be);
       
+      if Has_Element(child_cursor) then
+         target_parent.L_enfant.all.Delete(child_cursor);
+      end if;
+      
+      Free(deleted_to_be);
 
-   --  end removeFile;
+   end deleteDirectory;
 
 --------------------------------------------------------------------------------------
 
-   --  procedure renameOrMove(source_file: in String; new_file: in String; current_directory: in P_file) is
+   function isAncestor (potential_ancestor: P_file; current_directory: P_file) return Boolean is
+   begin
+      -- Cas: on a atteint la racine sans trouver l'ancêtre
+      if current_directory = null then
+         return False;
+      end if;
 
-   --     temp_source: P_file;
-   --     temp_new: P_file;
+      -- Cas: l'ancêtre est trouvé
+      if current_directory = potential_ancestor then
+         return True;
+      end if;
 
-   --     parent_source : P_file;
-   --     parent_new : P_file;
+      -- Appel récursif : On regarde si l'ancêtre est plus haut dans l'arbre
+      return isAncestor(potential_ancestor, current_directory.rep_parent);
 
-   --  begin
+   end isAncestor;
 
-   --     --Le but est d'extraire le répertoire parent souhaité
-   --     temp_source := parsePath(source_file, current_directory);
-   --     temp_new := parsePath(new_file);
+--------------------------------------------------------------------------------------
 
-   --     parent_source := extractParent(source_file, current_directory);
-   --     parent_new := extractParent(new_file, current_directory);
+   function parseIsAncestor(path: in String; current_directory: in P_file) return Boolean is
 
-   --     if getExisting (source_file, current_directory) then
-   --        if parent_source = parent_new then --cas du renommage
-   --           temp_source.nom := To_String(getName(source_file));
-   --        else --cas du déplacement
+      target: P_file;
 
-            
+   begin
 
-   --  end renameOrMove;
+      target := parsePath(path, current_directory);
+      if target = null then
+         return False;
+      else
+         return isAncestor(target, current_directory);
+      end if;
+
+   end parseIsAncestor;
 
 ---------------------------------------------------------------------------------------
 
@@ -728,31 +831,52 @@ end extractParent;
       loop
          Put_Line("Is the file you wish to remove a directory? y/n");
          Get(isDir);
+         Skip_Line;
          exit when isDir = 'y' or isDir = 'n';
          Put_Line("Please enter one of the specified characters");
       end loop;
 
       loop
-         Put_Line("Please enter the desired file path:");
+         Put_Line("Please enter the file path of the file you wish to delete:");
          name := To_Unbounded_String(Get_Line);
          exit when getPathValidity(To_String(name)) and then getExisting(To_String(name), current_directory);
          Put_Line("Invalid path, please try again");
       end loop;
 
-      --  if isDir = 'y' then
-      --     removeFile(To_String(name));
-      --  elsif isDir = 'n' then
-      --     removeFile(To_String(name));
-      --  end if;
+      if isDir = 'y' then
+         deleteDirectory(To_String(name), current_directory);
+      elsif isDir = 'n' then
+         delete(To_String(name), current_directory);
+      end if;
 
    end menuRemoveFile;
 
 -------------------------------------------------------------------------------------------------------------
 
-   --  procedure menuMoveOrRename(current_directory: in P_file);
+   procedure renameOrMove(source_file : in String; new_file: in string; current_directory: in P_file) is
+   
+      P_source: P_file;
+      P_new: P_file;
+      temp_file: P_file;
 
-   --     name
+   begin
 
+      P_source := parsePath(source_file, current_directory);
+      temp_file := P_source;
+      P_new := parsePath(new_file, current_directory);
+
+      if extractParent(source_file, current_directory) = extractParent(new_file, current_directory) then
+         temp_file.nom := getName(source_file);
+      else
+         if isDirectory(source_file, current_directory) then
+
+         else
+            copyFile (source_file, new_file, current_directory);
+            delete (source_file, current_directory);
+         end if;
+      end if;
+
+   end renameOrMove;
 
 -------------------------------------------------------------------------------------------------------------
 
@@ -842,11 +966,7 @@ end extractParent;
    function isDirectory(path: in String; current_directory: in P_file) return Boolean is
    begin
 
-      if parsePath(path, current_directory).isRepo then
-         return True;
-      else
-         return False;
-      end if;
+      return parsePath(path, current_directory).isRepo;
 
    end isDirectory;
    

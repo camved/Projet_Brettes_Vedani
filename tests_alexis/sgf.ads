@@ -17,8 +17,11 @@ package sgf is
    INVALID_FIRST_CHAR: Exception;
    NOT_IN_THIS_DIRECTORY: Exception;
    NOT_A_DIRECTORY: Exception;
+   NOT_A_FILE: Exception;
+   DIRECTORY_NOT_FOUND: Exception;
    FILE_NOT_EXIST: Exception;
    VOID_NOT_EXISTING: Exception;
+   IS_PARENT: Exception;
 
    type file; --Déclaration partielle pour permettre le pointeur suivant
 
@@ -59,7 +62,7 @@ package sgf is
    --Pré : copied existe dans le  et le chemin est valide
    --Post : le fichier est copié au bon endroit
    --Test : être en mesure de rverifier que le fichier copié est au bonne endroit et identique au premier
-   procedure copy_file(path : in String ; copied_name : in String; current_dir : P_file );
+   procedure copyFile(path : in String ; copied_name : in String; current_dir : P_file );
 
 ----------------------------------------------------------------------------------------------
 
@@ -74,16 +77,23 @@ package sgf is
 
 -------------------------------------------------------------------------------------------
 
-   --Nom : removeFile
-   --Objectif : Supprimer un fichier existant et supprime récursivement tout son contenu selon l'appel fait
-   --Paramètre : 
-      -- fichier : in string
-   --Pré : fichier existant
-   --Post : 
-      -- répertoire père du fichier ne contient plus le fichier
-      -- SI APPEL AVEC -r LES FICHIERS ET REPERTOIRES CONTENUS SONT SUPPRIMES
-   --Test : afficher le contenu du répertoire père
-   --procedure removeFile (fichier: in String);
+   --Nom : delete (~rm)
+   --Objectif : supprimer un fichier ou un répertoire
+   --Paramètres : path in, type String,  current_dir in, type P_file
+   --Pré : le chemin est valide et existe dans le SGF et curren_dir n'est pas vide
+   --Post : l'entité voulue est bien supprimée au bon endroit
+   --Test : être en mesure de vérifier que l'entité supprimée n'existe plus
+   procedure delete (name_or_path: in String ; current_dir : P_file);
+
+-------------------------------------------------------------------------------------------------
+
+   --Nom : deleteDirectory (~rm -r)
+   --Objectif : supprimer un répertoire contenant d'autres entités
+   --Paramètres : path in, type String,  current_dir in, type P_file
+   --Pré : le chemin est valide et existe dans le SGF et curren_dir n'est pas vide
+   --Post : l'entité voulue est bien supprimée au bon endroit, et ses enfants aussi
+   --Test : être en mesure de vérifier que l'entité supprimée n'existe plus et ses enfants non plus
+   procedure deleteDirectory (name_or_path: in String ; current_dir : P_file);
 
 ------------------------------------------------------------------------------------------------
 
@@ -229,7 +239,7 @@ package sgf is
    --Pré : modified_file existe dans le sgf et le chemin est valide
    --Post : le fichier est changé de place ou renommé
    --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé, et quelle ait changé si changement de nom ou de repertoire suf si le chemin donné est erroné
-   --procedure renameOrMove(source_file : in String; new_file: in string; current_directory: in P_file);
+   procedure renameOrMove(source_file : in String; new_file: in string; current_directory: in P_file);
 
 ------------------------------------------------------------------------------------------------------
 
@@ -363,7 +373,7 @@ package sgf is
 
 ---------------------------------------------------------------------------------------------------------
 
-   --isDirectory
+   --Nom: isDirectory
    --Objectif: renvoyer si un fichier donné en entrée est un répertoire ou pas
    --Paramètre: 
       --path: in String
@@ -374,5 +384,28 @@ package sgf is
       --le fichier donné en entrée a un format correct
    --Post:
    function isDirectory(path: in String; current_directory: in P_file) return Boolean;
+
+----------------------------------------------------------------------------------------------------------
+
+   --Nom: isAncestor
+   --Objectif: Renvoyer True si le répertoire est trouvé dans les parents successifs du répertoire courant
+   --Paramètre:
+      --current_directory: in P_file
+      --return Boolean
+   --Pré:
+   --Post:
+   function isAncestor(potential_ancestor: in P_file; current_directory: in P_file) return Boolean;
+
+-----------------------------------------------------------------------------------------------------------
+
+   --Nom: parseIsAncestor
+   --Objectif: convertir un string en P_file pour vérifier si le fichier pointé est un ancêtre du répertoire courant
+   --Paramètres:
+      --path: in String
+      --current_directory: in P_file
+      --return P_file
+   --Pré: path valide
+   --Post:
+   function parseIsAncestor(path: in String; current_directory: in P_file) return Boolean;
 
 end SGF;

@@ -18,8 +18,14 @@ begin
    menuCreate(current_directory);
    menuCreate(current_directory);
    menuCreate(current_directory);
+   Put_Line("displayFileContent");
    displayFileContent(current_directory);
    menuChangeDirectory(current_directory);
    displayFile(current_directory);
+   menuRemoveFile(current_directory);
+   menuChangeDirectory (current_directory);
+   Put_Line("displayFileContent");
+   displayFileContent(current_directory);
+
 
 end client;
