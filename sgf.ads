@@ -6,7 +6,8 @@ with Ada.Containers;             use Ada.Containers;
 with Ada.Characters.Handling;    use Ada.Characters.Handling;
 with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Strings.Fixed;          use Ada.Strings.Fixed;
-
+with Ada.Numerics.Discrete_Random;
+with Ada.Unchecked_Deallocation;
 
 package sgf is
 
@@ -257,6 +258,8 @@ package sgf is
    --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
    function getCurrentDirectory return P_file;
 
+   function plumaSimulator return Integer;
+
    --Nom : changeDirectory(cd)
    --Objectif : changer la valeur de current_file
    --Paramètres : name_file_to_go
@@ -276,21 +279,31 @@ package sgf is
    --Nom : displayFileContent (ls)
    --Objectif : afficher tous le contenus du repertoire actuel
    --Paramètres :
-      --file_to_show: in P_file
-   --Pré : current_file existe dans le sgf
+      --path_or_name_to_display: in String
+   --Pré : le fichier correspondant a path_or_name_to_display existe dans le sgf
    --Post : tout le contenu s'affiche
    --Test : tout s'affiche à l'écran après l'appel de la fonction
-   procedure displayFileContent(current_directory: in P_file);
+   procedure displayFileContent(path_or_name_to_display : in String);
 
-   --Nom : copyFile (cp)
-   --Objectif : copier le fichier ou rep dans un autre repertoire
-   --Paramètres : path in, type String,  copied_name in, type P_file
-   --Pré : copied existe dans le  et le chemin est valide
+   procedure displayFileContentRecursive(path_or_name_to_display : in String; current_dir : P_file; indent : Natural := 0);
+
+   --Nom : copy
+   --Objectif : procedure outils qui va copier un fichier ou repertoire dans un autre fichier
+   --Paramètres : to_be_copied in, type P_file,  new_parent in, type P_file
+   --Pré : to_be_copied existe bien
    --Post : le fichier est copié au bon endroit
    --Test : être en mesure de vérifier que le fichier copié est au bonne endroit et identique au premier
-   procedure copy(path : in String ; to_be_copied : in P_file; current_parent : in P_file);
+   procedure copy(to_be_copied : in P_file; new_parent : in P_file);
 
+   --Nom : copyFile (cp)
+   --Objectif : copier le fichier ou le rep dans un autre repertoire de facon recurssive si le rep a des enfants
+   --Paramètres : path in, type String,  copied_name_or_path in, type String, current_dir : P_file 
+   --Pré : copied existe dans le repertoire designe et le chemin est valide pour acceder au parent
+   --Post : le fichier est copié au bon endroit
+   --Test : être en mesure de vérifier que le fichier copié est au bonne endroit et identique au premier
    procedure copyRepoFile(path : in String; copied_name_or_path : in String; current_dir : P_file );
+
+   procedure changeSize(file : in P_file; new_data : in Integer);
 
    --Nom: menuCreate
    --Objectif: guider l'utilisateur dans la création d'un fichier, qu'il soit répertoire ou pas

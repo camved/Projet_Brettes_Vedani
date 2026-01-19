@@ -1,4 +1,3 @@
-with Ada.Unchecked_Deallocation;
 with sgf;
 
 package body sgf is
@@ -50,8 +49,9 @@ package body sgf is
          pointer_created.droits_acces := "rwxrwxrwx";
          pointer_created.taille := 1;
          pointer_created.rep_parent := Target_Parent; 
-         
          pointer_created.isRepo := isRepo;
+
+         changeSize (Target_Parent, 1);
 
          if isRepo then
             pointer_created.L_enfant := new File_List_Pkg.List; 
@@ -620,6 +620,24 @@ package body sgf is
       return current_directory;
    end getCurrentDirectory;
    
+   ----------
+
+   function plumaSimulator return Integer is
+
+      subtype Intervalle is Integer range 0 .. 10_000;
+      package Aleatoire is new Ada.Numerics.Discrete_Random (Intervalle);
+      use Aleatoire;
+      Gen : Generator;
+      nombre : Intervalle;
+
+   begin
+      
+      Reset(Gen);
+      nombre := Random(Gen);
+      return nombre;
+
+   end plumaSimulator;
+
    ---------- Preparation of SGF orders
 
    procedure changeDirectory(path : in String) is
@@ -627,6 +645,15 @@ package body sgf is
          destination : P_file;
 
    begin
+
+      if path = ".." then
+         if SGF.current_directory.rep_parent /= null then
+            SGF.current_directory := SGF.current_directory.rep_parent;
+         else
+            Put_Line("Vous etes deja a la racine.");
+         end if;
+         return; -- On s'arrête là, le travail est fait
+      end if;
    
       if containsSlash(path) then
          parent_destination := SGF.extractParent(path,SGF.current_directory);
@@ -659,25 +686,36 @@ package body sgf is
          raise VOID_POINTER_ERROR with "Error : file is null";
       end if;
       if pwd_file.Rep_Parent = null then
-         return To_Unbounded_String("/");
-      
+         return To_Unbounded_String("");
       else
          parent_path := getCurrentPath(pwd_file.Rep_Parent);
-         return parent_path & pwd_file.Nom & "/"  ;
+         return parent_path  & "/" & pwd_file.nom ;
       end if;
    end getCurrentPath;
 
-   ---------- ATTENTION ACTUALISER AVEC LA PATH
+   ----------
 
-   procedure displayFileContent(current_directory : in P_file) is
+   procedure displayFileContent(path_or_name_to_display : in String) is
 
       children_list : P_list;
+      children_list_to_display : P_list;
+      to_display, current_parent : P_file;
 
    begin
 
-      children_list := getChildren(current_directory);
+      if containsSlash (path_or_name_to_display) then 
+         current_parent := extractParent(path_or_name_to_display, SGF.current_directory);
+         children_list := getChildren(current_parent);
+         to_display := findChild(children_list.all, To_String(getName(path_or_name_to_display)));
+      else
+         current_parent := SGF.current_directory;
+         children_list := getChildren(SGF.current_directory);
+         to_display := findChild(children_list.all, path_or_name_to_display);
+      end if;
 
-      for child of children_list.all loop
+      children_list_to_display := getChildren(to_display);
+
+      for child of children_list_to_display.all loop
          Put_Line(To_String(child.nom));
       end loop;
 
@@ -685,57 +723,174 @@ package body sgf is
 
    ----------
 
-   procedure copy(path : in String ; to_be_copied : in P_file; current_parent : in P_file) is
+   procedure displayFileContentRecursive(path_or_name_to_display : in String; current_dir : P_file; indent : Natural := 0) is
       
-      new_parent : P_file;
-      children_list_current : P_list;
+      children_list_ancestor : P_list;
+      to_display, current_parent : P_file;
+      indent_str : String := (1 .. indent => ' '); 
+
+   begin
+
+      -- 1. CAS SPECIAL : Si le chemin est "." ou vide, c'est le dossier courant lui-même
+      if path_or_name_to_display = "." or path_or_name_to_display = "" then
+         to_display := current_dir;
+
+      -- 2. SINON : On cherche le fichier/dossier demandé
+      elsif containsSlash (path_or_name_to_display) then 
+         current_parent := extractParent(path_or_name_to_display, current_dir);
+         children_list_ancestor := getChildren(current_parent);
+         to_display := findChild(children_list_ancestor.all, To_String(getName(path_or_name_to_display)));
+      else
+         current_parent := current_dir;
+         children_list_ancestor := getChildren(current_dir);
+         to_display := findChild(children_list_ancestor.all, path_or_name_to_display);
+      end if;
+
+      -- 3. SECURITE : Si introuvable, on sort
+      if to_display = null then
+         return;
+      end if;
+
+      -- 4. AFFICHAGE ET RECURSION
+      if not to_display.isRepo then 
+         -- C'est un fichier
+         Put_Line(indent_str & "|-- [F] " & To_String(to_display.nom));
+      
+      elsif to_display.isRepo and then to_display.L_enfant.all.Is_Empty then 
+         -- C'est un dossier vide
+         Put_Line(indent_str & "|-- [D] " & To_String(to_display.nom) & " (Vide)");
+
+      else
+         -- C'est un dossier avec du contenu
+         -- On n'affiche le nom que si ce n'est pas le point de départ "." (pour éviter une ligne moche au début)
+         if path_or_name_to_display /= "." then
+             Put_Line(indent_str & "|-- [D] " & To_String(to_display.nom));
+         end if;
+         
+         for Child_File of getChildren(to_display).all loop
+            
+            -- ASTUCE : Pour la récursion, on change le contexte.
+            -- Le "current_dir" devient le dossier qu'on est en train de visiter (to_display)
+            -- Et on demande d'afficher l'enfant par son nom simple.
+            displayFileContentRecursive(
+               To_String(Child_File.nom), 
+               to_display,    -- Le dossier actuel devient la référence pour l'enfant
+               indent + 4
+            );
+         end loop;
+      end if;
+
+   end displayFileContentRecursive;
+
+   ----------   
+
+   procedure copy(to_be_copied : in P_file; new_parent : in P_file) is
+
       current_temp : P_file := SGF.current_directory;
 
-      begin
-         new_parent := extractParent(path, SGF.current_directory);
-         SGF.current_directory := new_parent;
-         createFile (To_String(to_be_copied.nom), to_be_copied.isRepo);
-         SGF.current_directory := current_temp;
+   begin
+      SGF.current_directory := new_parent;
+      createFile (To_String(to_be_copied.nom), to_be_copied.isRepo);
+      SGF.current_directory := current_temp;
 
-      end copy;
-   
+   end copy;
+
    ----------
 
    procedure copyRepoFile(path : in String; copied_name_or_path : in String; current_dir : P_file ) is
 
-      future_parent : P_file;
-      to_be_copied : P_file;
-      children_list_current : P_list;
-      current_parent : P_file;
+         future_parent_dir  : P_file;
+         source_parent      : P_file;
+         to_be_copied       : P_file;
+         
+         -- Variables pour la résolution des chemins
+         parent_of_dest     : P_file;
+         children_list_temp : P_list;
 
+   begin
 
-      begin
-            if containsSlash (copied_name_or_path) then 
-               current_parent := extractParent(copied_name_or_path, current_dir);
-               children_list_current := getChildren(current_parent);
-               to_be_copied := findChild(children_list_current.all, To_String(getName(copied_name_or_path)));
-            else
-               current_parent := current_dir;
-               children_list_current := getChildren(current_dir);
-               to_be_copied := findChild(children_list_current.all, copied_name_or_path);
-            end if;
+      -- 1. IDENTIFIER LA SOURCE (Ce qu'on veut copier)
+      if containsSlash (copied_name_or_path) then 
+         source_parent := extractParent(copied_name_or_path, current_dir);
+         children_list_temp := getChildren(source_parent);
+         to_be_copied := findChild(children_list_temp.all, To_String(getName(copied_name_or_path)));
+      else
+         source_parent := current_dir;
+         children_list_temp := getChildren(current_dir);
+         to_be_copied := findChild(children_list_temp.all, copied_name_or_path);
+      end if;
 
-            if to_be_copied = null then
-               Put_Line("Erreur : Source introuvable pour copie");
-               return;
-            end if;
+      if to_be_copied = null then
+         Put_Line("Erreur : Source introuvable (" & copied_name_or_path & ")");
+         return;
+      end if;
 
-            if not to_be_copied.isRepo then 
-               copy(path, to_be_copied, current_parent);
-            elsif to_be_copied.isRepo and then to_be_copied.L_enfant.all.Is_Empty then 
-               copy(path, to_be_copied, current_parent);
-            else
-               copy(path, to_be_copied, current_parent);
-               for Child_File of getChildren(to_be_copied).all loop
-                  copyRepoFile(path & "/" & To_String(to_be_copied.nom), To_String(Child_File.nom), to_be_copied);
-               end loop;
-            end if;
-         end copyRepoFile;
+      -- 2. IDENTIFIER LA DESTINATION (Où on veut le coller)
+      -- CORRECTION MAJEURE ICI : On cherche 'path' (Backup), pas 'copied_name_or_path' !
+      if containsSlash(path) then
+         parent_of_dest := extractParent(path, current_dir);
+         children_list_temp := getChildren(parent_of_dest);
+         future_parent_dir := findChild(children_list_temp.all, To_String(getName(path)));
+      else
+         -- Cas simple ou "."
+         if path = "." then
+            future_parent_dir := current_dir;
+         else
+            children_list_temp := getChildren(current_dir);
+            future_parent_dir := findChild(children_list_temp.all, path);
+         end if;
+      end if;
+
+      if future_parent_dir = null then
+         Put_Line("Erreur : Destination introuvable (" & path & ")");
+         return;
+      end if;
+
+      if not future_parent_dir.isRepo then
+         Put_Line("Erreur : La destination n'est pas un dossier.");
+         return;
+      end if;
+
+      -- 3. FAIRE LA COPIE (D'abord le parent, ENSUITE les enfants)
+      
+      -- a. On copie l'élément lui-même dans la destination
+      copy(to_be_copied, future_parent_dir);
+
+      -- b. Si c'est un dossier et qu'il a des enfants, on récursive
+      if to_be_copied.isRepo and then not to_be_copied.L_enfant.all.Is_Empty then
+         
+         for Child_File of getChildren(to_be_copied).all loop
+            
+            -- Appel récursif :
+            -- Destination : Le nouveau dossier qu'on vient de créer (Path + / + Nom_Dossier_Source)
+            -- Source      : Le chemin complet vers l'enfant (Source + / + Nom_Enfant)
+            -- Contexte    : On garde le current_dir d'origine pour ne pas perdre le fil des chemins relatifs
+            
+            copyRepoFile(
+               path & "/" & To_String(to_be_copied.nom),           -- Nouvelle Destination
+               copied_name_or_path & "/" & To_String(Child_File.nom), -- Nouvelle Source
+               current_dir                                         -- On garde le même repère
+            );
+            
+         end loop;
+      end if;
+
+   end copyRepoFile;
+   
+   ----------
+
+   procedure changeSize(file : in P_file; new_data : in Integer) is
+
+   parent : P_file := file.rep_parent;
+
+   begin
+
+      file.taille := file.taille + new_data;
+      if file.rep_parent /= null then
+         changeSize(file.rep_parent, new_data);
+      end if;
+
+   end changeSize;
 
    ---------- Menu procedures
 
