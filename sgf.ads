@@ -288,7 +288,9 @@ package sgf is
    --Pré : copied existe dans le  et le chemin est valide
    --Post : le fichier est copié au bon endroit
    --Test : être en mesure de vérifier que le fichier copié est au bonne endroit et identique au premier
-   procedure copyFile(path : in String ; copied_name : in String; current_dir : P_file );
+   procedure copy(path : in String ; to_be_copied : in P_file; current_parent : in P_file);
+
+   procedure copyRepoFile(path : in String; copied_name_or_path : in String; current_dir : P_file );
 
    --Nom: menuCreate
    --Objectif: guider l'utilisateur dans la création d'un fichier, qu'il soit répertoire ou pas

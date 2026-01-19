@@ -1,4 +1,5 @@
 with Ada.Unchecked_Deallocation;
+with sgf;
 
 package body sgf is
 
@@ -185,61 +186,70 @@ package body sgf is
    ----------
 
    procedure displayFile(current_directory : in P_file) is
-
+      use Ada.Containers; -- Pour Count_Type
    begin
       
+      -- 1. Sécurité
       if current_directory = null then
          Put_Line("Erreur : Le fichier à afficher est null.");
          return;
       end if;
 
       New_Line;
-      
+
+      -- 2. Métadonnées
       Put("Type             : ");
       if current_directory.isRepo then
          Put_Line("d (Dossier)"); 
       else
          Put_Line("- (Fichier)"); 
       end if;
+
       Put_Line("Access Right     : " & current_directory.droits_acces);
       Put_Line("Size             : " & Integer'Image(current_directory.taille) & " o");
       Put_Line("File name        : " & To_String(current_directory.nom));
+
+      -- 3. Compteur
       Put("Sous répertoires : ");
       if current_directory.isRepo and then current_directory.L_enfant /= null then
          Put_Line(Count_Type'Image(current_directory.L_enfant.Length));
       else
          Put_Line("0 (Non applicable)");
       end if;
+
+      -- 4. Parent
       Put("Parent           : ");
       if current_directory.rep_parent /= null then
-         Put_Line(To_String(current_directory.rep_parent.nom));
+         if To_String(current_directory.rep_parent.nom) = "" then
+            Put_Line("root"); 
+         else
+            Put_Line(To_String(current_directory.rep_parent.nom));
+         end if;
       else
-         Put_Line("[]");
+         Put_Line("No parents (Is Root)");
+      end if;
+      
+      New_Line;
+
+      -- 5. Liste des enfants
+      if current_directory.isRepo then
+         
+         if current_directory.L_enfant = null or else current_directory.L_enfant.Is_Empty then
+            Put_Line("   (Dossier vide)");
+         else
+            Put_Line("   Contenu de " & (if To_String(current_directory.nom) = "" then "root" else To_String(current_directory.nom)) & " :");
+            
+            -- La boucle "for ... of" déréférence automatiquement les éléments de la liste
+            for child of current_directory.L_enfant.all loop
+               if child /= null then
+                  Put_Line("   - " & To_String(child.nom));
+               end if;
+            end loop;
+         end if;
+
       end if;
 
       New_Line;
-
-      if (current_directory.L_enfant = null) and (current_directory.isRepo = True) then 
-         Put("Pas d'enfants");
-      elsif (current_directory.L_enfant /= null) and (current_directory.isRepo = True) then
-         
-         declare
-         
-            ma_liste: List renames current_directory.L_enfant.all;
-         
-         begin
-         
-            Put_Line("Liste des enfants de "& To_String(current_directory.nom) & " :");
-            --Boucle sur chaque élément de la liste avec la bibliothèque Ada.Containers.Doubly_Linked_Lists
-            for Element_pointe of ma_liste loop
-               if Element_pointe /= null then
-                  Put_Line("- " & To_String(Element_pointe.nom));
-               end if;
-            end loop;
-
-         end;
-
-      end if;
 
    end displayFile;
 
@@ -613,20 +623,27 @@ package body sgf is
    ---------- Preparation of SGF orders
 
    procedure changeDirectory(path : in String) is
-         Destination : P_file;
-      begin
+         parent_destination : P_file;
+         destination : P_file;
 
-      Destination := SGF.extractParent(path,SGF.current_directory);
+   begin
+   
+      if containsSlash(path) then
+         parent_destination := SGF.extractParent(path,SGF.current_directory);
+         destination := sgf.findChild(parent_destination.L_enfant.all, To_String(getName(path)));
+      else
+         destination := sgf.findChild(SGF.current_directory.L_enfant.all, To_String(getName(path)));
+      end if;
 
-         if Destination = null then
-            return;
-         end if;
+      if Destination = null then
+         return;
+      end if;
 
-         if not Destination.isRepo then
-            return;
-         end if;
+      if not Destination.isRepo then
+         return;
+      end if;
 
-         SGF.current_directory := Destination;
+      SGF.current_directory := Destination;
          
 
    end changeDirectory;
@@ -668,23 +685,57 @@ package body sgf is
 
    ----------
 
-   procedure copyFile(path : in String ; copied_name : in String; current_dir : P_file ) is
+   procedure copy(path : in String ; to_be_copied : in P_file; current_parent : in P_file) is
       
-      parent : P_file;
+      new_parent : P_file;
+      children_list_current : P_list;
+      current_temp : P_file := SGF.current_directory;
+
+      begin
+         new_parent := extractParent(path, SGF.current_directory);
+         SGF.current_directory := new_parent;
+         createFile (To_String(to_be_copied.nom), to_be_copied.isRepo);
+         SGF.current_directory := current_temp;
+
+      end copy;
+   
+   ----------
+
+   procedure copyRepoFile(path : in String; copied_name_or_path : in String; current_dir : P_file ) is
+
+      future_parent : P_file;
       to_be_copied : P_file;
       children_list_current : P_list;
+      current_parent : P_file;
 
-   begin
 
-      children_list_current := getChildren(current_dir);
-      to_be_copied := findChild(children_list_current.all, copied_name);
-      
-      parent := extractParent(path, current_dir);
-      SGF.current_directory := parent;
-      createFile (To_String(to_be_copied.nom), to_be_copied.isRepo);
-      SGF.current_directory := current_dir;
+      begin
+            if containsSlash (copied_name_or_path) then 
+               current_parent := extractParent(copied_name_or_path, current_dir);
+               children_list_current := getChildren(current_parent);
+               to_be_copied := findChild(children_list_current.all, To_String(getName(copied_name_or_path)));
+            else
+               current_parent := current_dir;
+               children_list_current := getChildren(current_dir);
+               to_be_copied := findChild(children_list_current.all, copied_name_or_path);
+            end if;
 
-   end copyFile;
+            if to_be_copied = null then
+               Put_Line("Erreur : Source introuvable pour copie");
+               return;
+            end if;
+
+            if not to_be_copied.isRepo then 
+               copy(path, to_be_copied, current_parent);
+            elsif to_be_copied.isRepo and then to_be_copied.L_enfant.all.Is_Empty then 
+               copy(path, to_be_copied, current_parent);
+            else
+               copy(path, to_be_copied, current_parent);
+               for Child_File of getChildren(to_be_copied).all loop
+                  copyRepoFile(path & "/" & To_String(to_be_copied.nom), To_String(Child_File.nom), to_be_copied);
+               end loop;
+            end if;
+         end copyRepoFile;
 
    ---------- Menu procedures
 

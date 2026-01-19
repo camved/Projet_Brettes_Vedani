@@ -98,21 +98,13 @@ begin
    Put(To_String(SGF.getCurrentPath(current)));
    SGF.createFile("raptor_baby",True);
    SGF.createFile("ankilosaure", False);
-   --  SGF.changeDirectory("raptor_baby");
+
    Put_Line ("test_raptor_dir");
    current := SGF.getCurrentDirectory;
    SGF.changeDirectory("raptor_baby");
    current := SGF.getCurrentDirectory;
-   Put_Line("couille dans le potage");
-
-
+   Put_Line("current_directory");
+   displayFile (current_directory);
    
-
-   SGF.copyFile ("/Raptor_directory/raptor_baby/", "ankilosaure", current);
-
-   SGF.delete("./raptor_baby/ankilosaure", current);
-  
-
-
 
 end tests_sgf; 
