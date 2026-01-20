@@ -737,6 +737,66 @@ package body sgf is
    
    ----------
 
+   procedure renameOrMove(source_file : in String; new_file: in String; current_directory: in P_file) is
+   
+      P_source: P_file;
+      P_new: P_file;
+
+   begin
+
+      P_source := parsePath(source_file, current_directory);
+      P_new := parsePath(new_file, current_directory);
+
+      if extractParent(source_file, current_directory) = extractParent(new_file, current_directory) then
+         P_source.nom := getName(source_file);
+      else
+         if isDirectory(source_file, current_directory) then
+
+         else
+            copyFile (source_file, new_file, current_directory);
+            delete (source_file, current_directory);
+         end if;
+      end if;
+
+   end renameOrMove;
+
+   ----------
+
+   procedure menuRenameOrMove(current_directory: in P_file) is
+
+      source_file: String;
+      new_file: String;
+
+   begin
+
+      Put_Line("This menu will guide you through copying a file or folder wherever you want");
+
+      loop
+         Put_Line("Please enter the path of the name you wish to copy:");
+         source_file := To_Unbounded_String(Get_Line);
+         exit when getPathValidity(To_String(source_file)) and then getExisting(source_file, current_directory);
+         raise VOID_INVALID_PATH;
+      end loop;
+
+      loop
+         Put_Line("Please enter the desired path:");
+         new_file := To_Unbounded_String(Get_Line);
+         exit when getPathValidity(To_String(new_file)) 
+            and then getExisting(To_String(getCurrentPath(extractParent(To_String(new_file), current_directory), current_directory)));
+         raise VOID_INVALID_PATH;
+      end loop;
+
+      if parsePath(source_file, current_directory).isRepo = True then
+
+      else
+         copyFile(source_file, new_file, current_directory);
+         delete(source_file, current_directory);
+      end if;
+   
+   end menuRenameOrMove;
+
+   ----------
+
    function isDirectory(path: in String; current_directory: in P_file) return Boolean is
    begin
 
@@ -1087,22 +1147,23 @@ package body sgf is
       loop
          Put_Line("Is the file you wish to remove a directory? y/n");
          Get(isDir);
+         Skip_Line;
          exit when isDir = 'y' or isDir = 'n';
          Put_Line("Please enter one of the specified characters");
       end loop;
 
       loop
-         Put_Line("Please enter the desired file path:");
+         Put_Line("Please enter the file path of the file you wish to delete:");
          name := To_Unbounded_String(Get_Line);
          exit when getPathValidity(To_String(name)) and then getExisting(To_String(name), current_directory);
          Put_Line("Invalid path, please try again");
       end loop;
 
-      --  if isDir = 'y' then
-      --     removeFile(To_String(name));
-      --  elsif isDir = 'n' then
-      --     removeFile(To_String(name));
-      --  end if;
+      if isDir = 'y' then
+         deleteDirectory(To_String(name), current_directory);
+      elsif isDir = 'n' then
+         delete(To_String(name), current_directory);
+      end if;
 
    end menuRemoveFile;
 

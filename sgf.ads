@@ -332,5 +332,14 @@ package sgf is
    -- Dans sgf.ads
    function Match_Pattern(FileName : String; Pattern : String) return Boolean;
    function getRegexFiles (pattern : String; current_dir : P_file) return P_list;
+   --Nom: menuRenameOrMove
+   --Objectif : guider l'utilisateur dans le déplacement d'un fichier
+   --Paramètres :
+      --source_file: in String
+      --new_file: in String
+      --current_directory: in P_file
+   --Pré: racine créée
+   --Post: 
+   procedure menuRenameOrMove(current_directory: in P_file);
 
 end SGF;
