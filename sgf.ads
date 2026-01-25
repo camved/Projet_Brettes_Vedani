@@ -329,4 +329,8 @@ package sgf is
    --Post:
    procedure menuRemoveFile(current_directory: in P_file);
 
+   -- Dans sgf.ads
+   function Match_Pattern(FileName : String; Pattern : String) return Boolean;
+   function getRegexFiles (pattern : String; current_dir : P_file) return P_list;
+
 end SGF;

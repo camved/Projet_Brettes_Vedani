@@ -975,6 +975,98 @@ package body sgf is
 
    end menuRemoveFile;
 
+   ---------- Terminal procedures and functions 
+
+type Resultat_Regex is record
+      Existe  : Boolean := False;
+      Index   : Natural := 0;
+      pattern : Unbounded_String := To_Unbounded_String(""); 
+   end record;
+
    ----------
+
+   function containsRegex (name : String) return Resultat_Regex is
+      Resultat : Resultat_Regex;
+   begin
+      for I in name'Range loop
+         if name(I) = '*' or name(I) = '?' then
+            Resultat.Existe  := True;
+            Resultat.Index   := I;
+            -- On pourrait stocker le pattern ici si besoin
+            return Resultat;
+         end if;
+      end loop;
+      return Resultat;
+   end containsRegex;
+
+   ----------
+
+   -- On garde uniquement Match_Pattern (la version propre et commentée)
+   function Match_Pattern(FileName : String; Pattern : String) return Boolean is
+   begin
+      -- CAS DE BASE : Fin du motif
+      if Pattern'Length = 0 then
+         return FileName'Length = 0;
+      end if;
+
+      -- CAS 1 : Le motif commence par '*'
+      if Pattern(Pattern'First) = '*' then
+         -- Si '*' est le dernier char du motif, il matche tout
+         if Pattern'Length = 1 then
+            return True;
+         end if;
+         
+         -- Récursion : soit on consomme le *, soit on consomme un caractère du nom
+         if Match_Pattern(FileName, Pattern(Pattern'First + 1 .. Pattern'Last)) then
+            return True;
+         elsif FileName'Length > 0 then
+             return Match_Pattern(FileName(FileName'First + 1 .. FileName'Last), Pattern);
+         else
+             return False;
+         end if;
+
+      -- CAS 2 : Le motif commence par '?'
+      elsif Pattern(Pattern'First) = '?' then
+         if FileName'Length = 0 then
+            return False;
+         else
+            return Match_Pattern(FileName(FileName'First + 1 .. FileName'Last), 
+                                 Pattern(Pattern'First + 1 .. Pattern'Last));
+         end if;
+
+      -- CAS 3 : Caractère standard
+      else
+         if FileName'Length > 0 and then FileName(FileName'First) = Pattern(Pattern'First) then
+            return Match_Pattern(FileName(FileName'First + 1 .. FileName'Last), 
+                                 Pattern(Pattern'First + 1 .. Pattern'Last));
+         else
+            return False;
+         end if;
+      end if;
+   end Match_Pattern;
+
+   ----------
+
+   -- Correction du nom, ajout du return type, et utilisation de Match_Pattern
+   function getRegexFiles (pattern : String; current_dir : P_file) return P_list is
+      Matches_List : P_list := new File_List_Pkg.List;
+      All_Children : P_list;
+   begin
+      if current_dir.isRepo and then not current_dir.L_enfant.all.Is_Empty then
+         -- Note: j'ai ajouté .all car getChildren renvoie un pointeur P_list souvent
+         -- Mais vérifie ta fonction getChildren, elle renvoie P_list (accès), donc pas besoin de .all si P_list est déjà un access
+         -- Vu ta définition : type P_list is access File_List_Pkg.List;
+         -- Donc getChildren renvoie un P_list.
+         All_Children := getChildren(current_dir);
+
+         for Child of All_Children.all loop
+            if Match_Pattern(To_String(Child.nom), pattern) then
+               Matches_List.Append(Child);
+            end if;
+         end loop;
+      end if;
+
+      return Matches_List;
+   end getRegexFiles;
 
 end sgf;
