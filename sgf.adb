@@ -6,13 +6,146 @@ package body sgf is
 
    procedure Free is new Ada.Unchecked_Deallocation(Object => file, Name => P_file);
 
+   type Resultat_Regex is record
+      Existe  : Boolean := False;
+      Index   : Natural := 0;
+      pattern : Unbounded_String := To_Unbounded_String(""); 
+   end record;
+
+   ----------
+
+   function containsRegex (name : String) return Resultat_Regex is
+      Resultat : Resultat_Regex;
+   begin
+      for I in name'Range loop
+         if name(I) = '*' or name(I) = '?' then
+            Resultat.Existe  := True;
+            Resultat.Index   := I;
+            -- On pourrait stocker le pattern ici si besoin
+            return Resultat;
+         end if;
+      end loop;
+      return Resultat;
+   end containsRegex;
+
+   ----------
+
+   -- On garde uniquement Match_Pattern (la version propre et commentée)
+   function Match_Pattern(FileName : String; Pattern : String) return Boolean is
+   begin
+      -- CAS DE BASE : Fin du motif
+      if Pattern'Length = 0 then
+         return FileName'Length = 0;
+      end if;
+
+      -- CAS 1 : Le motif commence par '*'
+      if Pattern(Pattern'First) = '*' then
+         -- Si '*' est le dernier char du motif, il matche tout
+         if Pattern'Length = 1 then
+            return True;
+         end if;
+         
+         -- Récursion : soit on consomme le *, soit on consomme un caractère du nom
+         if Match_Pattern(FileName, Pattern(Pattern'First + 1 .. Pattern'Last)) then
+            return True;
+         elsif FileName'Length > 0 then
+             return Match_Pattern(FileName(FileName'First + 1 .. FileName'Last), Pattern);
+         else
+             return False;
+         end if;
+
+      -- CAS 2 : Le motif commence par '?'
+      elsif Pattern(Pattern'First) = '?' then
+         if FileName'Length = 0 then
+            return False;
+         else
+            return Match_Pattern(FileName(FileName'First + 1 .. FileName'Last), 
+                                 Pattern(Pattern'First + 1 .. Pattern'Last));
+         end if;
+
+      -- CAS 3 : Caractère standard
+      else
+         if FileName'Length > 0 and then FileName(FileName'First) = Pattern(Pattern'First) then
+            return Match_Pattern(FileName(FileName'First + 1 .. FileName'Last), 
+                                 Pattern(Pattern'First + 1 .. Pattern'Last));
+         else
+            return False;
+         end if;
+      end if;
+   end Match_Pattern;
+
+   ----------
+
+   -- Correction du nom, ajout du return type, et utilisation de Match_Pattern
+   function getRegexFiles (pattern : String; current_dir : P_file) return P_list is
+      Matches_List : P_list := new File_List_Pkg.List;
+      All_Children : P_list;
+   begin
+      if current_dir.isRepo and then not current_dir.L_enfant.all.Is_Empty then
+         -- Note: j'ai ajouté .all car getChildren renvoie un pointeur P_list souvent
+         -- Mais vérifie ta fonction getChildren, elle renvoie P_list (accès), donc pas besoin de .all si P_list est déjà un access
+         -- Vu ta définition : type P_list is access File_List_Pkg.List;
+         -- Donc getChildren renvoie un P_list.
+         All_Children := getChildren(current_dir);
+
+         for Child of All_Children.all loop
+            if Match_Pattern(To_String(Child.nom), pattern) then
+               Matches_List.Append(Child);
+            end if;
+         end loop;
+      end if;
+
+      return Matches_List;
+   end getRegexFiles;
+
+      ----------
+
+   function Collect_Targets(Name_Or_Path : String; Current_Dir : P_file) return P_list is
+      Target_List  : P_list := new File_List_Pkg.List;
+      Parent_Dir   : P_file;
+      Pattern_Name : Unbounded_String;
+      Simple_Target : P_file;
+   begin
+      -- 1. Cas "ls" vide ou "." -> le dossier courant
+      if Name_Or_Path = "" or Name_Or_Path = "." then
+         Target_List.Append(Current_Dir);
+         return Target_List;
+      end if;
+
+      -- 2. On sépare le chemin (Où chercher ?) du nom/motif (Quoi chercher ?)
+      if containsSlash(Name_Or_Path) then
+         Parent_Dir   := extractParent(Name_Or_Path, Current_Dir);
+         Pattern_Name := getName(Name_Or_Path);
+      else
+         Parent_Dir   := Current_Dir;
+         Pattern_Name := To_Unbounded_String(Name_Or_Path);
+      end if;
+
+      if Parent_Dir = null then return Target_List; end if;
+
+      -- 3. C'est ici qu'on décide : Regex ou Nom Exact ?
+      if containsRegex(To_String(Pattern_Name)).Existe then
+         -- C'est une Regex (*.txt) -> On récupère tout ce qui matche
+         return getRegexFiles(To_String(Pattern_Name), Parent_Dir);
+      else
+         -- C'est un nom simple -> On cherche juste ce fichier
+         Simple_Target := findChild(Parent_Dir.L_enfant.all, To_String(Pattern_Name));
+         if Simple_Target /= null then
+            Target_List.Append(Simple_Target);
+         end if;
+         return Target_List;
+      end if;
+   exception
+      when others => return Target_List; -- En cas d'erreur, liste vide
+   end Collect_Targets;
+
    ---------- Root Initialization
 
    procedure initRacine (root: in out file) is
       pointer_root : P_file;
    begin
       pointer_root := new file;
-      pointer_root.nom := To_Unbounded_String("");
+      pointer_root.nom := To_Unbounded_String(" ");
       pointer_root.droits_acces := "rwxrwxrwx";
       pointer_root.taille := 1; --Volume total divisé par 10Ko pour qu'on ne manie qu'une unité simple
       pointer_root.rep_parent := null;
@@ -73,83 +206,113 @@ package body sgf is
    ----------
 
    procedure delete (name_or_path: in String ; current_dir : P_file) is
-      pointer_deleted : P_file;
-      nom : Unbounded_String;
+      -- On garde tes noms de variables
+      pointer_deleted : P_file; 
       Target_Parent : P_file; 
-      children_list_pointer : P_list;
+      C : File_List_Pkg.Cursor;
+      
+      -- Variable nécessaire pour le Regex (nouvelle logique)
+      Targets : P_list;
       use File_List_Pkg; 
-      C : Cursor;
-
    begin
 
-      Target_Parent := extractParent(name_or_path, current_dir);
+      -- 1. On récupère la liste des cibles (1 seul fichier ou plusieurs si *)
+      Targets := Collect_Targets(name_or_path, current_dir);
 
-      if Target_Parent = null then
-         raise VOID_INVALID_PATH;
+      if Targets.Is_Empty then
+         Put_Line("Erreur : Aucun fichier trouvé pour '" & name_or_path & "'");
+         return;
       end if;
 
-      nom := getName(name_or_path);
-      children_list_pointer := getChildren(Target_Parent);
-      pointer_deleted := findChild(children_list_pointer.all, To_String(nom));
+      -- 2. On boucle (pour gérer le cas rm *.txt)
+      for Element of Targets.all loop
+         
+         -- On assigne l'élément courant à TA variable historique
+         pointer_deleted := Element;
 
-      if pointer_deleted = null then
-         raise VOID_POINTER_ERROR;
-      end if;
-
-      C := File_List_Pkg.Find(Container => children_list_pointer.all, Item => pointer_deleted);
-      if Has_Element(C) then
-         children_list_pointer.all.Delete(C);
-      end if;
-
-      Free(pointer_deleted); 
+         -- Sécurité : on ne supprime pas un dossier avec rm
+         if pointer_deleted.isRepo then
+             Put_Line("Erreur : '" & To_String(pointer_deleted.nom) & "' est un dossier. Utilisez rmdir.");
+         
+         -- Sécurité : racine
+         elsif pointer_deleted.rep_parent = null then
+             Put_Line("Impossible de supprimer la racine.");
+             
+         else
+             -- Logique de suppression standard
+             Target_Parent := pointer_deleted.rep_parent;
+             
+             C := File_List_Pkg.Find(Container => Target_Parent.L_enfant.all, Item => pointer_deleted);
+             
+             if Has_Element(C) then
+                Target_Parent.L_enfant.all.Delete(C);
+                Free(pointer_deleted); 
+             end if;
+         end if;
+      end loop;
 
    end delete;
 
    ----------
 
    procedure deleteDirectory (name_or_path: in String ; current_dir : P_file) is
+      -- On garde tes noms de variables
       target_parent : P_file;
-      name_deleted_to_be : Unbounded_String; -- Unbounded pour coller au type record
       deleted_to_be : P_file;
       child_cursor : File_List_Pkg.Cursor;
       child_ptr : P_file;
-      use File_List_Pkg; -- Important pour voir les fonctions de liste
+      
+      -- Variable nécessaire pour le Regex
+      Targets : P_list;
+      use File_List_Pkg; 
 
-      begin
-         target_parent := extractParent(name_or_path , current_dir);
-         name_deleted_to_be := getName(name_or_path);
-         deleted_to_be := findChild(target_parent.L_enfant.all, To_String(name_deleted_to_be)); 
+   begin
+      -- 1. Récupération des dossiers cibles
+      Targets := Collect_Targets(name_or_path, current_dir);
 
-         if deleted_to_be = null then
-            Put_Line("Dossier introuvable.");
-            return;
-         end if;
+      if Targets.Is_Empty then
+         Put_Line("Erreur : Aucun dossier trouvé pour '" & name_or_path & "'");
+         return;
+      end if;
+
+      -- 2. Boucle sur les dossiers trouvés
+      for Element of Targets.all loop
+         
+         -- On assigne l'élément courant à TA variable historique
+         deleted_to_be := Element;
 
          if not deleted_to_be.isRepo then
-            Put_Line("Erreur : Ce n'est pas un dossier.");
-            return;
-         end if;
-
-
-         while not deleted_to_be.L_enfant.all.Is_Empty loop
-            
-            child_ptr := deleted_to_be.L_enfant.all.First_Element;
-            
-            if child_ptr.isRepo then
-
-               deleteDirectory(To_String(child_ptr.nom), deleted_to_be); 
-            else
-               delete(To_String(child_ptr.nom), deleted_to_be);
-            end if;
-         end loop;
-
-
-         child_cursor := Find(target_parent.L_enfant.all, deleted_to_be);
-         if Has_Element(child_cursor) then
-            target_parent.L_enfant.all.Delete(child_cursor);
-         end if;
+            Put_Line("Erreur : '" & To_String(deleted_to_be.nom) & "' n'est pas un dossier.");
          
-         Free(deleted_to_be);
+         elsif deleted_to_be.rep_parent = null then
+            Put_Line("Impossible de supprimer la racine.");
+
+         else
+            -- 3. VIDAGE RÉCURSIF (inchangé, sauf qu'on utilise ta boucle while)
+            while not deleted_to_be.L_enfant.all.Is_Empty loop
+               
+               child_ptr := deleted_to_be.L_enfant.all.First_Element;
+               
+               if child_ptr.isRepo then
+                  -- Appel récursif
+                  deleteDirectory(To_String(child_ptr.nom), deleted_to_be); 
+               else
+                  -- Appel delete fichier
+                  delete(To_String(child_ptr.nom), deleted_to_be);
+               end if;
+            end loop;
+
+            -- 4. SUPPRESSION DU DOSSIER LUI-MÊME
+            target_parent := deleted_to_be.rep_parent;
+            child_cursor := Find(target_parent.L_enfant.all, deleted_to_be);
+            
+            if Has_Element(child_cursor) then
+               target_parent.L_enfant.all.Delete(child_cursor);
+               Free(deleted_to_be);
+            end if;
+            
+         end if;
+      end loop;
 
    end deleteDirectory;
 
@@ -797,86 +960,84 @@ package body sgf is
 
    ----------
 
+   procedure Copy_Recursive(Src : P_file; Dest : P_file) is
+      New_Node : P_file;
+   begin
+      -- Copie du fichier/dossier lui-même
+      copy(Src, Dest);
+      
+      -- Si c'est un dossier non vide, on copie les enfants
+      if Src.isRepo and then not Src.L_enfant.all.Is_Empty then
+         
+         -- On retrouve le nouveau dossier créé dans la destination
+         New_Node := findChild(Dest.L_enfant.all, To_String(Src.nom));
+         
+         if New_Node /= null then
+            for Child of Src.L_enfant.all loop
+               Copy_Recursive(Child, New_Node);
+            end loop;
+         end if;
+      end if;
+   end Copy_Recursive;
+
+   ----------
+
+   -- 2. Ta procédure principale adaptée
    procedure copyRepoFile(path : in String; copied_name_or_path : in String; current_dir : P_file ) is
 
          future_parent_dir  : P_file;
-         source_parent      : P_file;
          to_be_copied       : P_file;
          
-         -- Variables pour la résolution des chemins
-         parent_of_dest     : P_file;
-         children_list_temp : P_list;
+         -- On garde 'children_list_temp' pour stocker la liste des sources trouvées
+         children_list_temp : P_list; 
+         
+         -- Variable technique pour récupérer la destination via Collect_Targets
+         Dest_List : P_list;
 
    begin
 
-      -- 1. IDENTIFIER LA SOURCE (Ce qu'on veut copier)
-      if containsSlash (copied_name_or_path) then 
-         source_parent := extractParent(copied_name_or_path, current_dir);
-         children_list_temp := getChildren(source_parent);
-         to_be_copied := findChild(children_list_temp.all, To_String(getName(copied_name_or_path)));
-      else
-         source_parent := current_dir;
-         children_list_temp := getChildren(current_dir);
-         to_be_copied := findChild(children_list_temp.all, copied_name_or_path);
+      -- 1. IDENTIFIER LA DESTINATION (path)
+      -- On utilise Collect_Targets, mais on s'attend à un résultat unique qui est un dossier
+      Dest_List := Collect_Targets(path, current_dir);
+      
+      if Dest_List.Is_Empty then
+          Put_Line("Erreur : Destination introuvable (" & path & ")");
+          return;
+      end if;
+      
+      future_parent_dir := Dest_List.First_Element;
+      
+      if not future_parent_dir.isRepo then
+          Put_Line("Erreur : La destination '" & To_String(future_parent_dir.nom) & "' doit être un dossier.");
+          return;
       end if;
 
-      if to_be_copied = null then
+      -- 2. IDENTIFIER LA/LES SOURCE(S) (copied_name_or_path)
+      -- C'est ici que le Regex fonctionne (ex: *.txt)
+      children_list_temp := Collect_Targets(copied_name_or_path, current_dir);
+
+      if children_list_temp.Is_Empty then
          Put_Line("Erreur : Source introuvable (" & copied_name_or_path & ")");
          return;
       end if;
 
-      -- 2. IDENTIFIER LA DESTINATION (Où on veut le coller)
-      -- CORRECTION MAJEURE ICI : On cherche 'path' (Backup), pas 'copied_name_or_path' !
-      if containsSlash(path) then
-         parent_of_dest := extractParent(path, current_dir);
-         children_list_temp := getChildren(parent_of_dest);
-         future_parent_dir := findChild(children_list_temp.all, To_String(getName(path)));
-      else
-         -- Cas simple ou "."
-         if path = "." then
-            future_parent_dir := current_dir;
-         else
-            children_list_temp := getChildren(current_dir);
-            future_parent_dir := findChild(children_list_temp.all, path);
-         end if;
-      end if;
-
-      if future_parent_dir = null then
-         Put_Line("Erreur : Destination introuvable (" & path & ")");
-         return;
-      end if;
-
-      if not future_parent_dir.isRepo then
-         Put_Line("Erreur : La destination n'est pas un dossier.");
-         return;
-      end if;
-
-      -- 3. FAIRE LA COPIE (D'abord le parent, ENSUITE les enfants)
-      
-      -- a. On copie l'élément lui-même dans la destination
-      copy(to_be_copied, future_parent_dir);
-
-      -- b. Si c'est un dossier et qu'il a des enfants, on récursive
-      if to_be_copied.isRepo and then not to_be_copied.L_enfant.all.Is_Empty then
+      -- 3. FAIRE LA COPIE (Boucle sur toutes les sources trouvées)
+      for Element of children_list_temp.all loop
          
-         for Child_File of getChildren(to_be_copied).all loop
-            
-            -- Appel récursif :
-            -- Destination : Le nouveau dossier qu'on vient de créer (Path + / + Nom_Dossier_Source)
-            -- Source      : Le chemin complet vers l'enfant (Source + / + Nom_Enfant)
-            -- Contexte    : On garde le current_dir d'origine pour ne pas perdre le fil des chemins relatifs
-            
-            copyRepoFile(
-               path & "/" & To_String(to_be_copied.nom),           -- Nouvelle Destination
-               copied_name_or_path & "/" & To_String(Child_File.nom), -- Nouvelle Source
-               current_dir                                         -- On garde le même repère
-            );
-            
-         end loop;
-      end if;
+         to_be_copied := Element;
+
+         -- Sécurité : on ne copie pas un dossier dans lui-même
+         if to_be_copied = future_parent_dir then
+            Put_Line("Erreur : Impossible de copier le dossier dans lui-même.");
+         else
+            -- On lance la copie récursive (gère fichiers ET dossiers)
+            Copy_Recursive(to_be_copied, future_parent_dir);
+         end if;
+         
+      end loop;
 
    end copyRepoFile;
-   
+
    ----------
 
    procedure changeSize(file : in P_file; new_data : in Integer) is
@@ -977,96 +1138,6 @@ package body sgf is
 
    ---------- Terminal procedures and functions 
 
-type Resultat_Regex is record
-      Existe  : Boolean := False;
-      Index   : Natural := 0;
-      pattern : Unbounded_String := To_Unbounded_String(""); 
-   end record;
 
-   ----------
-
-   function containsRegex (name : String) return Resultat_Regex is
-      Resultat : Resultat_Regex;
-   begin
-      for I in name'Range loop
-         if name(I) = '*' or name(I) = '?' then
-            Resultat.Existe  := True;
-            Resultat.Index   := I;
-            -- On pourrait stocker le pattern ici si besoin
-            return Resultat;
-         end if;
-      end loop;
-      return Resultat;
-   end containsRegex;
-
-   ----------
-
-   -- On garde uniquement Match_Pattern (la version propre et commentée)
-   function Match_Pattern(FileName : String; Pattern : String) return Boolean is
-   begin
-      -- CAS DE BASE : Fin du motif
-      if Pattern'Length = 0 then
-         return FileName'Length = 0;
-      end if;
-
-      -- CAS 1 : Le motif commence par '*'
-      if Pattern(Pattern'First) = '*' then
-         -- Si '*' est le dernier char du motif, il matche tout
-         if Pattern'Length = 1 then
-            return True;
-         end if;
-         
-         -- Récursion : soit on consomme le *, soit on consomme un caractère du nom
-         if Match_Pattern(FileName, Pattern(Pattern'First + 1 .. Pattern'Last)) then
-            return True;
-         elsif FileName'Length > 0 then
-             return Match_Pattern(FileName(FileName'First + 1 .. FileName'Last), Pattern);
-         else
-             return False;
-         end if;
-
-      -- CAS 2 : Le motif commence par '?'
-      elsif Pattern(Pattern'First) = '?' then
-         if FileName'Length = 0 then
-            return False;
-         else
-            return Match_Pattern(FileName(FileName'First + 1 .. FileName'Last), 
-                                 Pattern(Pattern'First + 1 .. Pattern'Last));
-         end if;
-
-      -- CAS 3 : Caractère standard
-      else
-         if FileName'Length > 0 and then FileName(FileName'First) = Pattern(Pattern'First) then
-            return Match_Pattern(FileName(FileName'First + 1 .. FileName'Last), 
-                                 Pattern(Pattern'First + 1 .. Pattern'Last));
-         else
-            return False;
-         end if;
-      end if;
-   end Match_Pattern;
-
-   ----------
-
-   -- Correction du nom, ajout du return type, et utilisation de Match_Pattern
-   function getRegexFiles (pattern : String; current_dir : P_file) return P_list is
-      Matches_List : P_list := new File_List_Pkg.List;
-      All_Children : P_list;
-   begin
-      if current_dir.isRepo and then not current_dir.L_enfant.all.Is_Empty then
-         -- Note: j'ai ajouté .all car getChildren renvoie un pointeur P_list souvent
-         -- Mais vérifie ta fonction getChildren, elle renvoie P_list (accès), donc pas besoin de .all si P_list est déjà un access
-         -- Vu ta définition : type P_list is access File_List_Pkg.List;
-         -- Donc getChildren renvoie un P_list.
-         All_Children := getChildren(current_dir);
-
-         for Child of All_Children.all loop
-            if Match_Pattern(To_String(Child.nom), pattern) then
-               Matches_List.Append(Child);
-            end if;
-         end loop;
-      end if;
-
-      return Matches_List;
-   end getRegexFiles;
 
 end sgf;
