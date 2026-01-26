@@ -252,7 +252,7 @@ package sgf is
    --Post: l'adresse de la racine est renvoyée
    function findRoot (current_directory:  in P_file) return P_file;
 
-   --Nom : get_current_directory
+   --Nom : getCurrentDirectory
    --Objectif : Retourner le chemin absolu du fichier actuelle
    --Paramètres : current_file in, type P_file
    --Pré : current_file existe dans le sgf

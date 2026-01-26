@@ -14,6 +14,15 @@ package body sgf is
 
    ----------
 
+   function getCurrentDirectory return P_file is
+   begin
+
+      return sgf.current_directory;
+
+   end getCurrentDirectory;
+
+   ----------
+
    function containsRegex (name : String) return Resultat_Regex is
       Resultat : Resultat_Regex;
    begin
@@ -352,7 +361,7 @@ package body sgf is
          Put_Line("- (Fichier)"); 
       end if;
 
-      Put_Line("Access Right     : " & current_directory.droits_acces);
+      Put_Line("Access Right     : " & To_String(current_directory.droits_acces));
       Put_Line("Size             : " & Integer'Image(current_directory.taille) & " o");
       Put_Line("File name        : " & To_String(current_directory.nom));
 
@@ -750,12 +759,8 @@ package body sgf is
       if extractParent(source_file, current_directory) = extractParent(new_file, current_directory) then
          P_source.nom := getName(source_file);
       else
-         if isDirectory(source_file, current_directory) then
-
-         else
-            copyFile (source_file, new_file, current_directory);
-            delete (source_file, current_directory);
-         end if;
+         copyRepoFile (source_file, new_file, current_directory);
+         delete (source_file, current_directory);
       end if;
 
    end renameOrMove;
@@ -764,8 +769,8 @@ package body sgf is
 
    procedure menuRenameOrMove(current_directory: in P_file) is
 
-      source_file: String;
-      new_file: String;
+      source_file: Unbounded_string;
+      new_file: unbounded_string;
 
    begin
 
@@ -774,24 +779,20 @@ package body sgf is
       loop
          Put_Line("Please enter the path of the name you wish to copy:");
          source_file := To_Unbounded_String(Get_Line);
-         exit when getPathValidity(To_String(source_file)) and then getExisting(source_file, current_directory);
+         exit when getPathValidity(To_String(source_file)) and then getExisting(To_string(source_file), current_directory);
          raise VOID_INVALID_PATH;
       end loop;
 
       loop
          Put_Line("Please enter the desired path:");
          new_file := To_Unbounded_String(Get_Line);
-         exit when getPathValidity(To_String(new_file)) 
-            and then getExisting(To_String(getCurrentPath(extractParent(To_String(new_file), current_directory), current_directory)));
+         exit when getPathValidity(To_String(new_file))
+            and then getExisting(To_String(getCurrentPath(extractParent((To_String(new_file)), current_directory))), current_directory);
          raise VOID_INVALID_PATH;
       end loop;
 
-      if parsePath(source_file, current_directory).isRepo = True then
-         
-      else
-         copyFile(source_file, new_file, current_directory);
-         delete(source_file, current_directory);
-      end if;
+      copyRepoFile(To_string(source_file), To_string(new_file), current_directory);
+      delete(To_string(source_file), current_directory);
    
    end menuRenameOrMove;
 
@@ -808,7 +809,6 @@ package body sgf is
 
    function findRoot (current_directory: in P_file) return P_file is
    begin
-menu
       if current_directory = null then
          return null;
       elsif current_directory.all.rep_parent = null then
