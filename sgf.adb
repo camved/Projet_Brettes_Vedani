@@ -82,10 +82,6 @@ package body sgf is
       All_Children : P_list;
    begin
       if current_dir.isRepo and then not current_dir.L_enfant.all.Is_Empty then
-         -- Note: j'ai ajouté .all car getChildren renvoie un pointeur P_list souvent
-         -- Mais vérifie ta fonction getChildren, elle renvoie P_list (accès), donc pas besoin de .all si P_list est déjà un access
-         -- Vu ta définition : type P_list is access File_List_Pkg.List;
-         -- Donc getChildren renvoie un P_list.
          All_Children := getChildren(current_dir);
 
          for Child of All_Children.all loop
@@ -206,17 +202,13 @@ package body sgf is
    ----------
 
    procedure delete (name_or_path: in String ; current_dir : P_file) is
-      -- On garde tes noms de variables
       pointer_deleted : P_file; 
       Target_Parent : P_file; 
       C : File_List_Pkg.Cursor;
-      
-      -- Variable nécessaire pour le Regex (nouvelle logique)
       Targets : P_list;
       use File_List_Pkg; 
    begin
 
-      -- 1. On récupère la liste des cibles (1 seul fichier ou plusieurs si *)
       Targets := Collect_Targets(name_or_path, current_dir);
 
       if Targets.Is_Empty then
@@ -224,22 +216,14 @@ package body sgf is
          return;
       end if;
 
-      -- 2. On boucle (pour gérer le cas rm *.txt)
       for Element of Targets.all loop
-         
-         -- On assigne l'élément courant à TA variable historique
          pointer_deleted := Element;
-
-         -- Sécurité : on ne supprime pas un dossier avec rm
          if pointer_deleted.isRepo then
              Put_Line("Erreur : '" & To_String(pointer_deleted.nom) & "' est un dossier. Utilisez rmdir.");
-         
-         -- Sécurité : racine
          elsif pointer_deleted.rep_parent = null then
              Put_Line("Impossible de supprimer la racine.");
              
          else
-             -- Logique de suppression standard
              Target_Parent := pointer_deleted.rep_parent;
              
              C := File_List_Pkg.Find(Container => Target_Parent.L_enfant.all, Item => pointer_deleted);
@@ -982,22 +966,15 @@ package body sgf is
 
    ----------
 
-   -- 2. Ta procédure principale adaptée
    procedure copyRepoFile(path : in String; copied_name_or_path : in String; current_dir : P_file ) is
 
          future_parent_dir  : P_file;
          to_be_copied       : P_file;
-         
-         -- On garde 'children_list_temp' pour stocker la liste des sources trouvées
          children_list_temp : P_list; 
-         
-         -- Variable technique pour récupérer la destination via Collect_Targets
          Dest_List : P_list;
 
    begin
 
-      -- 1. IDENTIFIER LA DESTINATION (path)
-      -- On utilise Collect_Targets, mais on s'attend à un résultat unique qui est un dossier
       Dest_List := Collect_Targets(path, current_dir);
       
       if Dest_List.Is_Empty then
@@ -1012,25 +989,18 @@ package body sgf is
           return;
       end if;
 
-      -- 2. IDENTIFIER LA/LES SOURCE(S) (copied_name_or_path)
-      -- C'est ici que le Regex fonctionne (ex: *.txt)
       children_list_temp := Collect_Targets(copied_name_or_path, current_dir);
 
       if children_list_temp.Is_Empty then
          Put_Line("Erreur : Source introuvable (" & copied_name_or_path & ")");
          return;
       end if;
-
-      -- 3. FAIRE LA COPIE (Boucle sur toutes les sources trouvées)
       for Element of children_list_temp.all loop
          
          to_be_copied := Element;
-
-         -- Sécurité : on ne copie pas un dossier dans lui-même
          if to_be_copied = future_parent_dir then
             Put_Line("Erreur : Impossible de copier le dossier dans lui-même.");
          else
-            -- On lance la copie récursive (gère fichiers ET dossiers)
             Copy_Recursive(to_be_copied, future_parent_dir);
          end if;
          
