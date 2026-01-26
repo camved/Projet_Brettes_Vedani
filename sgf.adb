@@ -787,7 +787,7 @@ package body sgf is
       end loop;
 
       if parsePath(source_file, current_directory).isRepo = True then
-
+         
       else
          copyFile(source_file, new_file, current_directory);
          delete(source_file, current_directory);
@@ -808,7 +808,7 @@ package body sgf is
 
    function findRoot (current_directory: in P_file) return P_file is
    begin
-
+menu
       if current_directory = null then
          return null;
       elsif current_directory.all.rep_parent = null then
@@ -818,14 +818,6 @@ package body sgf is
       end if;
    
    end findRoot;
-
-   ----------
-
-   function getCurrentDirectory return P_file is
-
-   begin
-      return current_directory;
-   end getCurrentDirectory;
    
    ----------
 

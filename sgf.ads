@@ -120,7 +120,7 @@ package sgf is
 
    --Nom : getName
    --Objectif : retourner le nom du fichier sans le chemin
-   --Exemple : /usr/share/alexis/file.txt renvoie file.txt
+   --Exemple : /usr/share/alexis_camille/raptor.txt renvoie raptor.txt
    --Paramètre :
       --path: in String
    --Pré : chemin valide
@@ -246,6 +246,7 @@ package sgf is
    --Nom: findRoot
    --Objectif: renvoyer l'adresse de la racine
    --Paramètre: 
+      --current_directory: in P_file
    --Pré: racine créée
    --Post: l'adresse de la racine est renvoyée
    function findRoot (current_directory:  in P_file) return P_file;
