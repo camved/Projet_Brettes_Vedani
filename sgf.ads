@@ -24,7 +24,7 @@ package sgf is
    type file is record
 
       nom: unbounded_string;
-      droits_acces: String (1..9);
+      droits_acces: unbounded_string;
       taille: Integer;
       rep_parent: P_file;
       L_enfant: P_list;
@@ -36,6 +36,7 @@ package sgf is
 
    root: file;
    current_directory: P_file;
+   current_user: unbounded_string;
 
 --SGF exception
 
@@ -342,5 +343,28 @@ package sgf is
    --Pré: racine créée
    --Post: 
    procedure menuRenameOrMove(current_directory: in P_file);
+
+   --procedure : switchUser
+   --Objectif : permettre le changement d'utilisateur
+   --Paramètres : 
+   --Pré :
+   --Post : 
+      --sgf.current_user = string rentré
+   procedure switchUser;
+
+   --procedure displayUser
+   --Objectif : afficher l'utilisateur actuellement connecté
+   --Paramètres :
+   --Pré :
+   --Post :
+   procedure displayUser;
+
+   --Nom : isOwner
+   --Objectif : dire si le current_user est le propriétaire ou pas
+   --Paramètres : 
+      --file: in P_file
+   --Pré : sgf.current_user /= null
+   --Post : False if sgf.current_user /= file.droits_acces, True sinon
+   function isOwner (file: in P_file) return Boolean;
 
 end SGF;

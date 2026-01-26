@@ -141,8 +141,8 @@ package body sgf is
       pointer_root : P_file;
    begin
       pointer_root := new file;
-      pointer_root.nom := To_Unbounded_String(" ");
-      pointer_root.droits_acces := "rwxrwxrwx";
+      pointer_root.nom := To_Unbounded_String("");
+      pointer_root.droits_acces := sgf.current_user;
       pointer_root.taille := 1; --Volume total divisé par 10Ko pour qu'on ne manie qu'une unité simple
       pointer_root.rep_parent := null;
       pointer_root.L_enfant := new File_List_Pkg.List;
@@ -175,7 +175,7 @@ package body sgf is
          end if;
          pointer_created := new file;
          pointer_created.nom := nom;
-         pointer_created.droits_acces := "rwxrwxrwx";
+         pointer_created.droits_acces := sgf.current_user;
          pointer_created.taille := 1;
          pointer_created.rep_parent := Target_Parent; 
          pointer_created.isRepo := isRepo;
@@ -1162,5 +1162,36 @@ menu
    ---------- Terminal procedures and functions 
 
 
+
+   procedure switchUser is
+   begin
+
+      Put_Line("Please the user you wish to log-in as:");
+      sgf.current_user := To_Unbounded_String(Get_Line);
+
+   end switchUser; 
+
+   ----------
+
+   procedure displayUser is
+   begin
+
+      Put_Line("You are currently logged-in as:");
+      Put_Line(To_String(sgf.current_user));
+
+   end displayUser;
+
+   --------- 
+
+   function isOwner(file: in P_file) return Boolean is
+   begin
+
+      if file.droits_acces = sgf.current_user then
+         return True;
+      else
+         return False;
+      end if;
+
+   end isOwner;
 
 end sgf;
