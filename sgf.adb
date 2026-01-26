@@ -774,21 +774,22 @@ package body sgf is
 
    begin
 
-      Put_Line("This menu will guide you through copying a file or folder wherever you want");
+      Put_Line("This menu will guide you through moving a file or folder wherever you want");
 
       loop
-         Put_Line("Please enter the path of the name you wish to copy:");
+         Put_Line("Please enter the path of the name you wish to move:");
          source_file := To_Unbounded_String(Get_Line);
          exit when getPathValidity(To_String(source_file)) and then getExisting(To_string(source_file), current_directory);
-         raise VOID_INVALID_PATH;
+         Put_Line("Please enter a valid path.");
       end loop;
 
       loop
-         Put_Line("Please enter the desired path:");
+         Put_Line("Please enter the desired new path:");
          new_file := To_Unbounded_String(Get_Line);
          exit when getPathValidity(To_String(new_file))
-            and then getExisting(To_String(getCurrentPath(extractParent((To_String(new_file)), current_directory))), current_directory);
-         raise VOID_INVALID_PATH;
+            and then getExisting(To_String(getCurrentPath(extractParent((To_String(new_file)), current_directory))), current_directory)
+            and then not getExisting(To_String(new_file), current_directory);
+         Put_Line("Please enter a valid path.");
       end loop;
 
       copyRepoFile(To_string(source_file), To_string(new_file), current_directory);
@@ -1018,7 +1019,7 @@ package body sgf is
 
    ----------
 
-   procedure copyRepoFile(path : in String; copied_name_or_path : in String; current_dir : P_file ) is
+   procedure copyRepoFile(copied_name_or_path : in String; path : in String; current_dir : P_file ) is
 
          future_parent_dir  : P_file;
          to_be_copied       : P_file;
@@ -1159,6 +1160,49 @@ package body sgf is
 
    end menuRemoveFile;
 
+   ----------
+
+   procedure menuDisplayFile(current_directory: in P_file) is
+
+      choice: Character;
+      path: Unbounded_String;
+      isDir: Character;
+
+   begin
+
+      loop
+
+         Put_Line("Do you wish to:");
+         Put_Line("a. Display the content of a directory");
+         Put_Line("b. Recursively display the content of a a directory");
+
+         Get(choice);
+         Skip_Line;
+
+         exit when choice = 'a' or choice = 'b';
+         Put_Line("Please enter either a or b");
+
+      end loop;
+
+      loop
+
+         Put_Line("Please enter the name of the directory for which you wish to display the content:");
+         path := To_Unbounded_String(Get_Line);
+         exit when getPathValidity(To_string(path)) 
+         and then getExisting(To_String(path), current_directory) 
+         and then isDirectory (To_String(path), current_directory);
+         Put_Line("Please enter a valid path");
+
+      end loop;
+
+      if choice = 'a' then
+         displayFileContent(path);
+      else
+         displayFileContentRecursive(path, current_directory);
+      end if;
+
+   end menuDisplayFile;
+
    ---------- Terminal procedures and functions 
 
 
@@ -1193,5 +1237,71 @@ package body sgf is
       end if;
 
    end isOwner;
+
+   ---------
+
+   procedure menuSwitchUser is
+   begin
+
+      Put_Line("You are currently logged in as " & To_String(sgf.current_user));
+      switchUser;
+
+   end menuSwitchUser;
+
+   --------
+
+   procedure interactiveMenu(racine: in P_file; current_directory: in P_file) is
+
+      choice: Integer;
+
+   begin
+
+      loop
+         New_Line;
+         Put_Line("---File Management System---");
+         Put_Line("You are currently in " & To_String(getCurrentPath(current_directory)));
+         Put_Line("1. Create a file (mkdir or touch)");
+         Put_Line("2. Change directory (cd)");
+         Put_Line("3. Delete a file (rm or rm -r)");
+         Put_Line("4. Move or rename a file (mv)");
+         Put_Line("5. Change the space taken by a file (non-directory)");
+         Put_Line("6. Display the files in directory (ls)");
+         Put_Line("7. Change the user (su)");
+         Put_Line("8. Display the current user");
+         Put_Line("9. Leave");
+         Put_Line("---Enter your choice---");
+
+         Get(choice);
+         Skip_Line;
+
+      case choice is
+         when 1 =>
+            menuCreate(current_directory);
+         when 2 => 
+            menuChangeDirectory(current_directory);
+         when 3 =>
+            menuRemoveFile(current_directory);
+         when 4 => 
+            menuRenameOrMove(current_directory);
+         when 5 =>
+            menuChangeSize(current_directory);
+         when 6 =>
+            menuDisplayFile(current_directory);
+         when 7 =>
+            switchUser;
+         when 8 =>
+            displayUser;
+         when 9 =>
+            null;
+         when others =>
+            Put_Line("Invalid choice, try again");
+      end case;
+
+      exit when choice = 9;
+      end loop;
+      Put_Line("Good bye!");
+
+
+   end interactiveMenu;
 
 end sgf;

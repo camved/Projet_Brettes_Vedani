@@ -305,6 +305,13 @@ package sgf is
    --Test : être en mesure de vérifier que le fichier copié est au bonne endroit et identique au premier
    procedure copyRepoFile(path : in String; copied_name_or_path : in String; current_dir : P_file );
 
+   --Nom : menuSwitchUser
+   --Objectif : changer d'utilisateur
+   --Paramètres :
+   --Pré : 
+   --Post :
+   procedure menuSwitchUser;
+
    procedure changeSize(file : in P_file; new_data : in Integer);
 
    --Nom: menuCreate
@@ -366,5 +373,23 @@ package sgf is
    --Pré : sgf.current_user /= null
    --Post : False if sgf.current_user /= file.droits_acces, True sinon
    function isOwner (file: in P_file) return Boolean;
+
+   --Nom: interactiveMenu
+   --Objectif: guider l'utilisateur à travers l'exécution de toutes les commandes
+   --Paramètres: 
+      --racine: in P_file
+      --current_directory: in P_file
+   --Pré: racine créée
+   --Post: 
+   procedure interactiveMenu(racine: in P_file; current_directory: in P_file);
+
+   --Nom: menuDisplayFile
+   --Objectif: permettre l'affichage du contenu d'un répertoire (= ls) ou récursivement de tous les répertoires (ls -r)
+   --Paramètres:
+      --current_directory: in P_file
+   --Pré: isExisting(racine)
+   --Post: 
+   procedure menuDisplayFile(current_directory: in P_file);
+
 
 end SGF;
