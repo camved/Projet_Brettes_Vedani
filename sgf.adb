@@ -106,7 +106,7 @@ package body sgf is
 
       ----------
 
-   function Collect_Targets(Name_Or_Path : String; Current_Dir : P_file; memoire : out Mem) return P_list is
+   function Collect_Targets(Name_Or_Path : String; Current_Dir : P_file) return P_list is
       Target_List  : P_list := new File_List_Pkg.List;
       Parent_Dir   : P_file;
       Pattern_Name : Unbounded_String;
@@ -251,7 +251,7 @@ package body sgf is
 
    ----------
 
-   procedure deleteDirectory (name_or_path: in String ; current_dir : P_file) is
+   procedure deleteDirectory (name_or_path: in String ; current_dir : P_file; memoire : in out Mem) is
       -- On garde tes noms de variables
       target_parent : P_file;
       deleted_to_be : P_file;
@@ -291,10 +291,10 @@ package body sgf is
                
                if child_ptr.isRepo then
                   -- Appel récursif
-                  deleteDirectory(To_String(child_ptr.nom), deleted_to_be); 
+                  deleteDirectory(To_String(child_ptr.nom), deleted_to_be,memoire); 
                else
                   -- Appel delete fichier
-                  delete(To_String(child_ptr.nom), deleted_to_be);
+                  delete(To_String(child_ptr.nom), deleted_to_be, memoire);
                end if;
             end loop;
 
@@ -737,10 +737,13 @@ end extractParent;
    
    ----------
 
-   procedure renameOrMove(source_file : in String; new_file : in String; current_directory : in P_file) is
-      P_source      : P_file;
+   procedure renameOrMove(source_file : in String; new_file: in String; current_directory: in P_file; memoire : in out Mem) is
+   
+      P_source: P_file;
       P_Dest_Parent : P_file;
       New_Name      : constant String := To_String(getName(new_file));
+
+
    begin
       -- 1. On trouve l'objet à déplacer (la source doit exister)
       P_source := parsePath(source_file, current_directory);
@@ -752,7 +755,6 @@ end extractParent;
       if P_source = null or P_Dest_Parent = null then
          Put_Line("Erreur : Source ou dossier de destination introuvable.");
          return;
-      end if;
 
       -- 4. ACTION
       -- Si on est dans le même dossier, on renomme juste
@@ -761,14 +763,14 @@ end extractParent;
       else
          -- Si on change de dossier, on utilise ta logique de copie/suppression
          -- Mais attention : copyRepoFile doit être adaptée aussi !
-         copyRepoFile(source_file, new_file, current_directory);
-         delete(source_file, current_directory);
+         copyRepoFile(source_file, new_file, current_directory,memoire);
+         delete(source_file, current_directory, memoire);
       end if;
    end renameOrMove;
 
    ----------
 
-   procedure menuRenameOrMove(current_directory: in P_file) is
+   procedure menuRenameOrMove(current_directory: in P_file; memoire : in out Mem) is
 
       source_file: Unbounded_string;
       new_file: unbounded_string;
@@ -811,8 +813,8 @@ end extractParent;
       Put_Line("Invalid path: either the parent doesn't exist or the name is already taken.");
    end loop;
 
-      copyRepoFile(To_string(source_file), To_string(new_file), current_directory);
-      delete(To_string(source_file), current_directory);
+      copyRepoFile(To_string(source_file), To_string(new_file), current_directory, memoire);
+      delete(To_string(source_file), current_directory, memoire);
    
    end menuRenameOrMove;
 
@@ -988,24 +990,24 @@ end extractParent;
 
    ----------   
 
-   procedure copy(to_be_copied : in P_file; new_parent : in P_file) is
+   procedure copy(to_be_copied : in P_file; new_parent : in P_file; memoire :in out Mem ) is
 
       current_temp : P_file := SGF.current_directory;
 
    begin
       SGF.current_directory := new_parent;
-      createFile (To_String(to_be_copied.nom), to_be_copied.isRepo);
+      createFile (To_String(to_be_copied.nom), to_be_copied.isRepo,memoire);
       SGF.current_directory := current_temp;
 
    end copy;
 
    ----------
 
-   procedure Copy_Recursive(Src : P_file; Dest : P_file) is
+   procedure Copy_Recursive(Src : P_file; Dest : P_file ; memoire : in out Mem) is
       New_Node : P_file;
    begin
       -- Copie du fichier/dossier lui-même
-      copy(Src, Dest);
+      copy(Src, Dest, memoire);
       
       -- Si c'est un dossier non vide, on copie les enfants
       if Src.isRepo and then not Src.L_enfant.all.Is_Empty then
@@ -1015,7 +1017,7 @@ end extractParent;
          
          if New_Node /= null then
             for Child of Src.L_enfant.all loop
-               Copy_Recursive(Child, New_Node);
+               Copy_Recursive(Child, New_Node, memoire);
             end loop;
          end if;
       end if;
@@ -1023,7 +1025,7 @@ end extractParent;
 
    ----------
 
-procedure copyRepoFile(copied_name_or_path : in String; path : in String; current_dir : P_file ) is
+procedure copyRepoFile(copied_name_or_path : in String; path : in String; current_dir : P_file ; memoire : in out Mem ) is
    future_parent_dir  : P_file;
    to_be_copied       : P_file;
    Source_List        : P_list;
@@ -1037,7 +1039,7 @@ begin
        return;
    end if;
    
-   if not future_parent_dir.isRepo then
+   if not future_parent_dir.isRepo thenu
        Put_Line("Erreur : La destination doit être un dossier.");
        return;
    end if;
@@ -1086,7 +1088,7 @@ end copyRepoFile;
 
    ---------- Menu procedures
 
-   procedure menuCreate(current_directory: in P_file) is
+   procedure menuCreate(current_directory: in P_file; memoire : in out Mem) is
 
       name: Unbounded_String;
       isDir: Character;
@@ -1110,9 +1112,9 @@ end copyRepoFile;
       end loop;
 
       if isDir = 'y' then
-         createFile(To_String(name), True);
+         createFile(To_String(name), True, memoire);
       else 
-         createFile(To_String(name), False);
+         createFile(To_String(name), False, memoire);
       end if;
 
    end menuCreate;
@@ -1138,7 +1140,7 @@ end copyRepoFile;
 
    ----------
 
-   procedure menuRemoveFile(current_directory: in P_file) is
+   procedure menuRemoveFile(current_directory: in P_file; memoire :in out Mem) is
 
       name: Unbounded_String;
       isDir: Character;
@@ -1162,9 +1164,9 @@ end copyRepoFile;
 
       if sgf.current_user = parsePath(To_string(name), current_directory).droits_acces then 
          if isDir = 'y' then
-            deleteDirectory(To_String(name), current_directory);
+            deleteDirectory(To_String(name), current_directory, memoire);
          elsif isDir = 'n' then
-            delete(To_String(name), current_directory);
+            delete(To_String(name), current_directory,memoire);
          end if;
       else
          raise VOID_NOT_OWNER;
@@ -1210,9 +1212,9 @@ end copyRepoFile;
       end loop;
 
       if choice = 'a' then
-         displayFileContent(To_String(path));
+         displayFileContent(To_string(path));
       else
-         displayFileContentRecursive(To_String(path), current_directory);
+         displayFileContentRecursive(To_string(path), current_directory);
       end if;
 
    end menuDisplayFile;
@@ -1283,7 +1285,7 @@ end copyRepoFile;
 
    --------
 
-   procedure interactiveMenu(current_directory: in out P_file) is
+   procedure interactiveMenu(current_directory: in P_file ; memoire : in out Mem) is
 
       choice: Integer;
 
@@ -1312,15 +1314,15 @@ end copyRepoFile;
 
       case choice is
          when 1 =>
-            menuCreate(current_directory);
+            menuCreate(current_directory, memoire);
          when 2 => 
             menuChangeDirectory(current_directory);
          when 3 =>
-            menuRemoveFile(current_directory);
+            menuRemoveFile(current_directory, memoire);
          when 4 => 
-            menuRenameOrMove(current_directory);
+            menuRenameOrMove(current_directory, memoire);
          --  when 5 =>
-         --     menuChangeSize(current_directory);
+         --     menuChangeSize(current_directory, memoire);
          when 6 =>
             menuDisplayFile(current_directory);
          when 7 =>

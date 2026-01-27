@@ -39,6 +39,7 @@ package sgf is
    root: file;
    current_directory: P_file;
    current_user: unbounded_string;
+   memoire : Mem;
 
 --SGF exception
 
@@ -62,7 +63,7 @@ package sgf is
    --Pré : pas de répertoire racine créé
    --Post : un répertoire racine créé
    --Test : être en mesure de se déplacer dans le répertoire racine avec cd une fois le répertoire racine créé
-   procedure initRacine (root: in out file); 
+   procedure initRacine (root: in out file; memoire: in out Mem); 
 
    --Nom : createFile
    --Objectif : Créer un fichier dont on choisit le nom, les droits à l'endroit de notre choix.
@@ -71,7 +72,7 @@ package sgf is
    --Post :
       -- répertoire parent est bien un répertoire (file.rep_parent.all.isRepo = True)
       -- fichier fils bien créé et conforme à ce qui est demandé
-   procedure createFile (nom_or_path: in String; isRepo : in Boolean);
+   procedure createFile (nom_or_path: in String; isRepo : in Boolean; memoire : in out Mem);
 
    --Nom : delete (~rm)
    --Objectif : supprimer un fichier ou un répertoire
@@ -79,7 +80,7 @@ package sgf is
    --Pré : le chemin est valide et existe dans le SGF et curren_dir n'est pas vide
    --Post : l'entité voulue est bien supprimée au bon endroit
    --Test : être en mesure de vérifier que l'entité supprimée n'existe plus
-   procedure delete (name_or_path: in String ; current_dir : P_file);
+   procedure delete (name_or_path: in String ; current_dir : P_file; memoire: in out Mem);
 
    --Nom : deleteDirectory (~rm -r)
    --Objectif : supprimer un répertoire contenant d'autres entités
@@ -87,7 +88,7 @@ package sgf is
    --Pré : le chemin est valide et existe dans le SGF et curren_dir n'est pas vide
    --Post : l'entité voulue est bien supprimée au bon endroit, et ses enfants aussi
    --Test : être en mesure de vérifier que l'entité supprimée n'existe plus et ses enfants non plus
-   procedure deleteDirectory (name_or_path: in String ; current_dir : P_file);
+   procedure deleteDirectory (name_or_path: in String ; current_dir : P_file; memoire : in out Mem);
 
    --Nom : getChildren
    --Objectif : Retourner le pointeur des enfants 
@@ -317,7 +318,7 @@ package sgf is
    --Pré : to_be_copied existe bien
    --Post : le fichier est copié au bon endroit
    --Test : être en mesure de vérifier que le fichier copié est au bonne endroit et identique au premier
-   procedure copy(to_be_copied : in P_file; new_parent : in P_file);
+   procedure copy(to_be_copied : in P_file; new_parent : in P_file ; memoire : in out Mem);
 
    --Nom : copyFile (cp)
    --Objectif : copier le fichier ou le rep dans un autre repertoire de facon recurssive si le rep a des enfants
@@ -325,7 +326,7 @@ package sgf is
    --Pré : copied existe dans le repertoire designe et le chemin est valide pour acceder au parent
    --Post : le fichier est copié au bon endroit
    --Test : être en mesure de vérifier que le fichier copié est au bonne endroit et identique au premier
-   procedure copyRepoFile(copied_name_or_path : in String; path : in String; current_dir : P_file );
+   procedure copyRepoFile(copied_name_or_path : in String; path : in String; current_dir : P_file ; memoire : in out Mem );
 
    --Nom : menuSwitchUser
    --Objectif : changer d'utilisateur
@@ -347,7 +348,7 @@ package sgf is
       --current_directory: in P_file
    --Pré:
    --Post:
-   procedure menuCreate(current_directory: in P_file);
+   procedure menuCreate(current_directory: in P_file ; memoire : in out Mem);
 
    --Nom: menuChangeDirectory
    --Objectif: guider l'utilisateur dans le changement de son current_directory
@@ -363,7 +364,7 @@ package sgf is
       --current_directory: P_file
    --Pré:
    --Post:
-   procedure menuRemoveFile(current_directory: in P_file);
+   procedure menuRemoveFile(current_directory: in P_file ; memoire : in out Mem);
 
    -- Dans sgf.ads
    function Match_Pattern(FileName : String; Pattern : String) return Boolean;
@@ -376,7 +377,7 @@ package sgf is
       --current_directory: in P_file
    --Pré: racine créée
    --Post: 
-   procedure menuRenameOrMove(current_directory: in P_file);
+   procedure menuRenameOrMove(current_directory: in P_file ; memoire : in out Mem);
 
    --procedure : switchUser
    --Objectif : permettre le changement d'utilisateur
@@ -407,7 +408,7 @@ package sgf is
       --current_directory: in out P_file
    --Pré: racine créée
    --Post: 
-   procedure interactiveMenu(current_directory: in out P_file);
+   procedure interactiveMenu(current_directory: in out P_file ; memoire : in out Mem);
 
    --Nom: menuDisplayFile
    --Objectif: permettre l'affichage du contenu d'un répertoire (= ls) ou récursivement de tous les répertoires (ls -r)
