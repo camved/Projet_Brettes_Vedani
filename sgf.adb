@@ -1064,7 +1064,7 @@ begin
          -- ATTENTION : Ton Copy_Recursive doit probablement être adapté 
          -- pour prendre en compte le nouveau nom "New_Name" 
          -- sinon il gardera le nom "file1" dans le nouveau dossier.
-         Copy_Recursive(to_be_copied, future_parent_dir);
+         Copy_Recursive(to_be_copied, future_parent_dir, memoire);
          
          -- ASTUCE : Une fois copié, on change le nom du dernier enfant ajouté
          -- pour qu'il s'appelle "file2" et non plus "file1"
@@ -1287,7 +1287,7 @@ end copyRepoFile;
 
    --------
 
-   procedure interactiveMenu(current_directory: in P_file ; memoire : in out Mem) is
+   procedure interactiveMenu(current_directory: in out P_file ; memoire : in out Mem) is
 
       choice: Integer;
 
