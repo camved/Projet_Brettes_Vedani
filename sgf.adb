@@ -995,10 +995,15 @@ end extractParent;
    procedure copy(to_be_copied : in P_file; new_parent : in P_file; memoire :in out Mem ) is
 
       current_temp : P_file := SGF.current_directory;
+      temp: P_file;
 
    begin
+
       SGF.current_directory := new_parent;
-      createFile (To_String(to_be_copied.nom), to_be_copied.isRepo,memoire);
+      createFile (To_String(to_be_copied.nom), to_be_copied.isRepo);
+      temp := new_parent.L_enfant.Last_Element;
+      temp.droits_acces := sgf.current_user; --changesize to add
+      temp.taille := to_be_copied.taille;
       SGF.current_directory := current_temp;
 
    end copy;
@@ -1345,7 +1350,7 @@ end copyRepoFile;
             Put_Line("You are not the owner of this file. You cannot delete it.");
       end;
 
-      exit when choice = 9;
+      exit when choice = 10;
       end loop;
       Put_Line("Good bye!");
 
