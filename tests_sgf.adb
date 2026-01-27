@@ -169,7 +169,6 @@ begin
    -- Appel de TA fonction displayFileContentRecursive
    -- On affiche à partir de la racine actuelle, indentation 0
    SGF.displayFileContentRecursive(".", SGF.getCurrentDirectory, 0);
-
    New_Line;
    Put_Line(">>> Affichage Simple du contenu de Dossier_A :");
    SGF.displayFileContent("Bebe_Raptor/Dossier_A");

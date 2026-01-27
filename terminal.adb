@@ -131,6 +131,9 @@ begin
             Put_Line("Usage : cp <source> <dest>");
          end if;
       
+      elsif Command = "pwd" then
+         Put_Line(To_String(SGF.getCurrentPath(SGF.getCurrentDirectory)));
+      
       elsif Command /= "" then
          Put_Line("Commande inconnue : " & To_String(Command));
       end if;
