@@ -747,9 +747,11 @@ end extractParent;
    --        Put_Line("4. Move or rename a file (mv)");
    --        Put_Line("5. Change the space taken by a file (non-directory)");
    --        Put_Line("6. Display the files in directory (ls)");
-   --        Put_Line("7. Leave");
+   --        Put_Line("7. Change the user (su)");
+   --        Put_Line("8. Display the current user");
+   --        Put_Line("9. Leave");
    --        Put_Line("---Enter your choice---");
-   --     exit when choice = 7;
+   --     exit when choice = 9;
    --     end loop;
 
    --     begin
