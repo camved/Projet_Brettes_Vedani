@@ -263,28 +263,28 @@ package body sgf is
       use File_List_Pkg; 
 
    begin
-      -- 1. Récupération des dossiers cibles
+      -- Récupération des dossiers cibles
       Targets := Collect_Targets(name_or_path, current_dir);
 
       if Targets.Is_Empty then
-         Put_Line("Erreur : Aucun dossier trouvé pour '" & name_or_path & "'");
+         Put_Line("Error: no directory found for '" & name_or_path & "'");
          return;
       end if;
 
-      -- 2. Boucle sur les dossiers trouvés
+      -- Boucle sur les dossiers trouvés
       for Element of Targets.all loop
          
          -- On assigne l'élément courant à TA variable historique
          deleted_to_be := Element;
 
          if not deleted_to_be.isRepo then
-            Put_Line("Erreur : '" & To_String(deleted_to_be.nom) & "' n'est pas un dossier.");
+            Put_Line("Error: '" & To_String(deleted_to_be.nom) & "' is not a directory.");
          
          elsif deleted_to_be.rep_parent = null then
-            Put_Line("Impossible de supprimer la racine.");
+            raise VOID_ROOT_LOCATION with "Deleting the root is not allowed in our programme.";
 
          else
-            -- 3. VIDAGE RÉCURSIF (inchangé, sauf qu'on utilise ta boucle while)
+            -- VIDAGE RÉCURSIF (inchangé, sauf qu'on utilise ta boucle while)
             while not deleted_to_be.L_enfant.all.Is_Empty loop
                
                child_ptr := deleted_to_be.L_enfant.all.First_Element;
@@ -298,7 +298,7 @@ package body sgf is
                end if;
             end loop;
 
-            -- 4. SUPPRESSION DU DOSSIER LUI-MÊME
+            -- SUPPRESSION DU DOSSIER LUI-MÊME
             target_parent := deleted_to_be.rep_parent;
             child_cursor := Find(target_parent.L_enfant.all, deleted_to_be);
             
@@ -333,14 +333,14 @@ package body sgf is
 
    begin
       if children_list.Is_Empty then 
-         raise VOID_CHILD_ERROR with "Error : no child in this directory";
+         raise FILE_NOT_EXIST with "Directory is empty";
       else
          for child_element of children_list loop
             if To_String(child_element.nom) = child_to_find then
                return child_element;
             end if;
          end loop;
-         return null;
+         raise FILE_NOT_EXIST with child_to_find & "not found.";
       end if;
    end findChild;
 
@@ -554,14 +554,14 @@ package body sgf is
    begin
    
       if fichier'Length = 0 then
-         raise EMPTY_STRING;
+         raise VOID_INVALID_PATH;
       else
          if fichier(fichier'First) = '/' then
             return(parseAbsolute(fichier, current_directory)); 
          elsif (fichier(fichier'First) = '.') or Is_Alphanumeric (fichier(fichier'First)) then
             return(parseRelative(fichier, current_directory));
          else
-            raise INVALID_FIRST_CHAR;
+            raise VOID_INVALID_PATH;
          end if;
       end if;
 
@@ -616,7 +616,7 @@ end extractParent;
    
    exception
 
-      when VOID_INVALID_PATH | EMPTY_STRING | INVALID_FIRST_CHAR =>
+      when VOID_INVALID_PATH =>
          return False;
 
    end getExisting;
@@ -872,7 +872,7 @@ end extractParent;
       if destination /= null and then destination.isRepo then
          current_directory := destination; -- C'est ici que la magie opère
       else
-         Put_Line("Error: Directory not found or it is a file.");
+         raise NOT_A_DIRECTORY;
       end if;
    end changeDirectory;
 
@@ -1000,7 +1000,7 @@ end extractParent;
    begin
 
       SGF.current_directory := new_parent;
-      createFile (To_String(to_be_copied.nom), to_be_copied.isRepo);
+      createFile (To_String(to_be_copied.nom), to_be_copied.isRepo, memoire);
       temp := new_parent.L_enfant.Last_Element;
       temp.droits_acces := sgf.current_user; --changesize to add
       temp.taille := to_be_copied.taille;
@@ -1346,8 +1346,20 @@ end copyRepoFile;
 
       exception
          when VOID_NOT_OWNER =>
-            NEW_LINE;
+            New_Line;
             Put_Line("You are not the owner of this file. You cannot delete it.");
+            New_Line;
+         when VOID_INVALID_PATH =>
+            New_Line;
+            Put_Line("This path is invalid. Try again.");
+            New_Line;
+         when VOID_ROOT_LOCATION =>
+            New_Line;
+            Put_Line("The user tried to access the root unaccordingly.");
+            New_Line;
+         when E : others =>
+            Put_Line("Critical error: " & Ada.Exceptions.Exception_Name(E));
+            Put_Line("Message:" & Ada.Exceptions.Exception_Message(E));
       end;
 
       exit when choice = 10;

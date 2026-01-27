@@ -6,6 +6,7 @@ with Ada.Strings.Fixed;
 with Ada.Characters.Handling;    use Ada.Characters.Handling;
 with Ada.Containers.Doubly_Linked_Lists; 
 with sgf;                        use sgf;
+with Ada.Exceptions;
 
 procedure client is
 
@@ -14,6 +15,6 @@ procedure client is
 begin
 
    switchUser;
-   initRacine(root);
-   interactiveMenu(current_directory);
+   initRacine(root, memoire);
+   interactiveMenu(current_directory, memoire);
 end client;

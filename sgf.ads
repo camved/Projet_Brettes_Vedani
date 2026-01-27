@@ -9,6 +9,7 @@ with Ada.Strings.Fixed;          use Ada.Strings.Fixed;
 with memoire; use memoire;
 with Ada.Numerics.Discrete_Random;
 with Ada.Unchecked_Deallocation;
+with Ada.Exceptions;
 
 package sgf is
 
@@ -45,14 +46,9 @@ package sgf is
 
    VOID_INVALID_PATH: Exception;
    VOID_ROOT_LOCATION: Exception;
-   VOID_CHILD_ERROR: Exception;
    VOID_POINTER_ERROR: Exception;
-   EMPTY_STRING: Exception;
-   INVALID_FIRST_CHAR: Exception;
-   NOT_IN_THIS_DIRECTORY: Exception;
    NOT_A_DIRECTORY: Exception;
    FILE_NOT_EXIST: Exception;
-   VOID_NOT_EXISTING: Exception;
    VOID_NOT_OWNER: Exception;
 
 -- specs
@@ -181,9 +177,7 @@ package sgf is
       --Adresse valide renvoyée en hexadécimale
       --Erreur renvoyée si n'existe pas
    --Exceptions : 
-      --=> EMPTY_STRING
-      --=> INVALID_FIRST_CHAR
-      --=> FILE_NOT_EXIST
+      --=> VOID_INVALID_PATH
    function parsePath (fichier: in String; current_directory: in P_file) return P_file;
 
    --Nom: extractParent
@@ -199,9 +193,7 @@ package sgf is
       --Adresse valide renvoyée en hexadécimale
       --Erreur renvoyée si n'existe pas
    --Exceptions : 
-      --=> EMPTY_STRING
-      --=> INVALID_FIRST_CHAR
-      --=> FILE_NOT_EXIST
+      --=> VOID_INVALID_PATH
    function extractParent (fichier: in String; current_directory: in P_file) return P_file;
 
    --Nom : getExisting
