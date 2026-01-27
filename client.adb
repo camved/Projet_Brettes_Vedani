@@ -13,7 +13,7 @@ procedure client is
 
 begin
 
-   initRacine(root);
    switchUser;
+   initRacine(root);
    interactiveMenu(current_directory);
 end client;

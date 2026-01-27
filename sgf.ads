@@ -50,6 +50,7 @@ package sgf is
    NOT_A_DIRECTORY: Exception;
    FILE_NOT_EXIST: Exception;
    VOID_NOT_EXISTING: Exception;
+   VOID_NOT_OWNER: Exception;
 
 -- specs
 
@@ -147,6 +148,23 @@ package sgf is
    --Post: adresse renvoyée
    --Exception: NOT_EXISTING
    function parseRelative (fichier: in String; Current_Directory: in P_file) return P_file;
+
+   --Nom: displayOwner
+   --Objectif: afficher le owner d'un fichier cherché
+   --Paramètres: 
+      --path: in String
+      --current_directory: in P_file
+   --Pré: 
+   --Post:
+   procedure displayOwner(path: in String; current_directory: in P_file);
+
+   --Nom: menuDisplayOwner
+   --Objectif: permettre à l'utilisateur de saisir le fichier dont il veut voir l'owner
+   --Paramètres:
+      --current_directory: in P_file
+   --Pré:
+   --Post:
+   procedure menuDisplayOwner(current_directory: in P_file);
 
    --Nom : parsePath
    --Objectif : Renvoyer l'adresse du répertoire ou du fichier visé

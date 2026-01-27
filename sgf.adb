@@ -411,6 +411,15 @@ package body sgf is
 
    ----------
 
+   procedure displayOwner(path: in String; current_directory: in P_file) is
+   begin
+
+      Put_Line("The owner of "& path & " is:");
+      Put_Line(To_String(parsePath(path, current_directory).droits_acces));
+
+   end displayOwner;
+   ----------
+
    function containsSlash(Text : in String) return Boolean is
 
    begin
@@ -1146,11 +1155,15 @@ end copyRepoFile;
          Put_Line("Invalid path, please try again");
       end loop;
 
-      if isDir = 'y' then
-         deleteDirectory(To_String(name), current_directory);
-      elsif isDir = 'n' then
-         delete(To_String(name), current_directory);
-      end if;
+      if sgf.current_user = parsePath(To_string(name), current_directory).droits_acces then 
+         if isDir = 'y' then
+            deleteDirectory(To_String(name), current_directory);
+         elsif isDir = 'n' then
+            delete(To_String(name), current_directory);
+         end if;
+      else
+         raise VOID_NOT_OWNER;
+      end if;      
 
    end menuRemoveFile;
 
@@ -1246,6 +1259,25 @@ end copyRepoFile;
 
    --------
 
+   procedure menuDisplayOwner(current_directory: in P_file) is
+   
+      path: unbounded_string;
+
+   begin
+
+      Put_Line("Please enter the file for which you wish to see the owner:");
+      path := To_Unbounded_String(Get_Line);
+      if getExisting (To_string(path), current_directory) then
+         displayOwner(To_String(path), current_directory);
+      else
+         Put_Line("This file does not exist.");
+      end if;
+      New_Line;
+
+   end menuDisplayOwner;
+
+   --------
+
    procedure interactiveMenu(current_directory: in out P_file) is
 
       choice: Integer;
@@ -1253,6 +1285,8 @@ end copyRepoFile;
    begin
 
       loop
+
+      begin
          New_Line;
          Put_Line("---File Management System---");
          Put_Line("You are currently in " & To_String(getCurrentPath(current_directory)));
@@ -1264,7 +1298,8 @@ end copyRepoFile;
          Put_Line("6. Display the files in directory (ls)");
          Put_Line("7. Change the user (su)");
          Put_Line("8. Display the current user");
-         Put_Line("9. Leave");
+         Put_Line("9. Display the owner of a file");
+         Put_Line("10. Leave");
          Put_Line("---Enter your choice---");
 
          Get(choice);
@@ -1288,10 +1323,18 @@ end copyRepoFile;
          when 8 =>
             displayUser;
          when 9 =>
+            menuDisplayOwner(current_directory);
+         when 10 =>
             null;
          when others =>
             Put_Line("Invalid choice, try again");
       end case;
+
+      exception
+         when VOID_NOT_OWNER =>
+            NEW_LINE;
+            Put_Line("You are not the owner of this file. You cannot delete it.");
+      end;
 
       exit when choice = 9;
       end loop;
