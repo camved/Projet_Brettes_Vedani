@@ -755,6 +755,7 @@ end extractParent;
       if P_source = null or P_Dest_Parent = null then
          Put_Line("Erreur : Source ou dossier de destination introuvable.");
          return;
+      end if;
 
       -- 4. ACTION
       -- Si on est dans le même dossier, on renomme juste
@@ -766,6 +767,7 @@ end extractParent;
          copyRepoFile(source_file, new_file, current_directory,memoire);
          delete(source_file, current_directory, memoire);
       end if;
+      
    end renameOrMove;
 
    ----------
@@ -1039,7 +1041,7 @@ begin
        return;
    end if;
    
-   if not future_parent_dir.isRepo thenu
+   if not future_parent_dir.isRepo then
        Put_Line("Erreur : La destination doit être un dossier.");
        return;
    end if;
