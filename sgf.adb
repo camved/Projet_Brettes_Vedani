@@ -149,8 +149,9 @@ package body sgf is
    procedure initRacine (root: in out file) is
       pointer_root : P_file;
    begin
+
       pointer_root := new file;
-      pointer_root.nom := To_Unbounded_String("");
+      pointer_root.nom := To_Unbounded_String("/");
       pointer_root.droits_acces := sgf.current_user;
       pointer_root.taille := 1; --Volume total divisé par 10Ko pour qu'on ne manie qu'une unité simple
       pointer_root.rep_parent := null;
@@ -189,7 +190,7 @@ package body sgf is
          pointer_created.rep_parent := Target_Parent; 
          pointer_created.isRepo := isRepo;
 
-         changeSize (Target_Parent, 1);
+         --  changeSize (Target_Parent, 1); MODIFIED
 
          if isRepo then
             pointer_created.L_enfant := new File_List_Pkg.List; 
@@ -204,7 +205,6 @@ package body sgf is
          else
             pointer_created.rep_parent.L_enfant.Append(pointer_created);
          end if;
-
 
    end createFile;
 
@@ -315,7 +315,7 @@ package body sgf is
 
    begin
       if adress_file.all.L_enfant.Is_Empty then 
-         raise VOID_CHILD_ERROR with "Error : no child in this directory";
+         return null;
       else 
          return adress_file.all.L_enfant;
       end if;
@@ -505,9 +505,12 @@ package body sgf is
 
             -- cas : répertoire parent = ".."
             elsif Segment = ".." then
-               if current_directory.rep_parent = null then -- cas où on est à la racine
-                  raise VOID_ROOT_LOCATION with "Erreur : vous essayez de monter au dessus de la racine";
+               if current_directory.rep_parent = null then 
+                  -- COMPORTEMENT LINUX : On est à la racine, ".." ne fait rien.
+                  -- On continue l'analyse du reste du chemin en restant ici.
+                  return parseRelative(Reste, current_directory);
                else
+                  -- Cas normal : on monte au parent
                   return parseRelative(Reste, current_directory.rep_parent);
                end if;
             
@@ -541,7 +544,7 @@ package body sgf is
       else
          if fichier(fichier'First) = '/' then
             return(parseAbsolute(fichier, current_directory)); 
-         elsif (fichier(fichier'First) = '.') or Is_Letter (fichier(fichier'First)) then
+         elsif (fichier(fichier'First) = '.') or Is_Alphanumeric (fichier(fichier'First)) then
             return(parseRelative(fichier, current_directory));
          else
             raise INVALID_FIRST_CHAR;
@@ -552,69 +555,43 @@ package body sgf is
 
    ----------
 
-   function extractParent (fichier : in String; current_directory : in P_file) return P_file is
-      
-      Last_Slash : Integer := 0;
-      FILE_NOT_EXIST: Exception;
-      EMPTY_STRING: Exception;
+function extractParent (fichier : in String; current_directory : in P_file) return P_file is
 
+   Last_Slash : Integer;
+
+begin
+
+   -- Cas particuliers simples
+   if fichier = "/" then 
+      return findRoot(current_directory); 
+   end if;
+
+   if fichier = "." or fichier = ".." then 
+      return parsePath(fichier & "/..", current_directory); 
+   end if;
+
+   -- Trouver le dernier slash
+   Last_Slash := Ada.Strings.Fixed.Index(fichier, "/", Ada.Strings.Backward);
+
+   -- Aucun slash : le parent est le répertoire courant
+   if Last_Slash = 0 then
+      return current_directory;
+   end if;
+
+   -- Slash à la fin (ex: "dir/"), on l'ignore et on recommence
+   if Last_Slash = fichier'Last then
+      return extractParent(fichier(fichier'First .. Last_Slash - 1), current_directory);
+   end if;
+
+   -- Cas général : extraire la partie dossier
+   declare
+      Path_Part : constant String := fichier(fichier'First .. Last_Slash - 1);
+      -- Si le chemin était "/file", Path_Part est vide, donc on vise "/"
+      Target : constant String := (if Path_Part = "" then "/" else Path_Part);
    begin
-      -- 1. Sécurité
-      if fichier'Length = 0 then
-         raise EMPTY_STRING;
-      end if;
-
-      -- 2. Recherche du dernier slash
-      Last_Slash := Ada.Strings.Fixed.Index
-      (Source  => fichier,
-         Pattern => "/",
-         Going   => Ada.Strings.Backward);
-
-      -- 3. Logique de décision
-      if Last_Slash = 0 then
-         -- Cas : "fichier", ".", ".." 
-         -- Il n'y a pas de slash, donc le parent est par définition 
-         -- l'endroit où l'on se trouve (ou le parent de l'endroit où l'on se trouve pour "..")
-         
-         if fichier = "." then
-            return current_directory.rep_parent; -- Le parent du courant
-         elsif fichier = ".." then
-            -- Le parent du parent
-            if current_directory.rep_parent = null then
-               return current_directory; 
-            else
-               return current_directory.rep_parent.rep_parent;
-            end if;
-         else
-            -- C'est un simple nom "readme.txt", son parent est ici
-            return current_directory;
-         end if;
-
-      elsif Last_Slash = fichier'Last then
-         -- Cas : "dossier/" ou "./" ou "../"
-         -- On retire le slash final et on recommence (récursion)
-         return extractParent(fichier(fichier'First .. fichier'Last - 1), current_directory);
-
-      else
-         -- Cas : "./fichier", "../dossier/test", "/a/b/c"
-         -- On extrait tout ce qui est AVANT le dernier slash
-         declare
-            Path_Parent : constant String := fichier(fichier'First .. Last_Slash - 1);
-            -- Si Path_Parent devient vide (cas de "/fichier"), c'est la racine
-            Final_Path  : constant String := (if Path_Parent = "" then "/" else Path_Parent);
-            Resultat    : P_file;
-         begin
-            -- On laisse parsePath faire tout le travail (gestion du . et .. incluse)
-            Resultat := parsePath(Final_Path, current_directory);
-            
-            if Resultat = null then
-               raise FILE_NOT_EXIST;
-            end if;
-            return Resultat;
-         end;
-      end if;
-
-   end extractParent;
+      return parsePath(Target, current_directory);
+   end;
+end extractParent;
 
    ----------
 
@@ -746,23 +723,33 @@ package body sgf is
    
    ----------
 
-   procedure renameOrMove(source_file : in String; new_file: in String; current_directory: in P_file) is
-   
-      P_source: P_file;
-      P_new: P_file;
-
+   procedure renameOrMove(source_file : in String; new_file : in String; current_directory : in P_file) is
+      P_source      : P_file;
+      P_Dest_Parent : P_file;
+      New_Name      : constant String := To_String(getName(new_file));
    begin
-
+      -- 1. On trouve l'objet à déplacer (la source doit exister)
       P_source := parsePath(source_file, current_directory);
-      P_new := parsePath(new_file, current_directory);
+      
+      -- 2. On trouve le dossier de destination (le parent doit exister)
+      P_Dest_Parent := extractParent(new_file, current_directory);
 
-      if extractParent(source_file, current_directory) = extractParent(new_file, current_directory) then
-         P_source.nom := getName(source_file);
-      else
-         copyRepoFile (source_file, new_file, current_directory);
-         delete (source_file, current_directory);
+      -- 3. Sécurités
+      if P_source = null or P_Dest_Parent = null then
+         Put_Line("Erreur : Source ou dossier de destination introuvable.");
+         return;
       end if;
 
+      -- 4. ACTION
+      -- Si on est dans le même dossier, on renomme juste
+      if extractParent(source_file, current_directory) = P_Dest_Parent then
+         P_source.nom := To_Unbounded_String(New_Name);
+      else
+         -- Si on change de dossier, on utilise ta logique de copie/suppression
+         -- Mais attention : copyRepoFile doit être adaptée aussi !
+         copyRepoFile(source_file, new_file, current_directory);
+         delete(source_file, current_directory);
+      end if;
    end renameOrMove;
 
    ----------
@@ -775,22 +762,40 @@ package body sgf is
    begin
 
       Put_Line("This menu will guide you through moving a file or folder wherever you want");
+      New_Line;
 
       loop
          Put_Line("Please enter the path of the name you wish to move:");
          source_file := To_Unbounded_String(Get_Line);
          exit when getPathValidity(To_String(source_file)) and then getExisting(To_string(source_file), current_directory);
-         Put_Line("Please enter a valid path.");
+         Put_Line("This file does not exist.");
       end loop;
 
-      loop
-         Put_Line("Please enter the desired new path:");
-         new_file := To_Unbounded_String(Get_Line);
-         exit when getPathValidity(To_String(new_file))
-            and then getExisting(To_String(getCurrentPath(extractParent((To_String(new_file)), current_directory))), current_directory)
-            and then not getExisting(To_String(new_file), current_directory);
-         Put_Line("Please enter a valid path.");
-      end loop;
+   loop
+      Put_Line("Please enter the desired new path:");
+      new_file := To_Unbounded_String(Get_Line);
+
+   declare
+      Path_Dest : String := To_String(new_file);
+
+      Parent_Ok : Boolean := extractParent(Path_Dest, current_directory) /= null;
+      Exists    : Boolean := getExisting(Path_Dest, current_directory);
+
+   begin
+
+      -- On accepte si le parent est trouvé ET que le fichier n'existe PAS encore
+      exit when Parent_Ok and not Exists;
+      
+      if not Parent_Ok then
+         Put_Line("Erreur : Le dossier de destination est introuvable.");
+      else
+         Put_Line("Erreur : Un fichier porte déjà ce nom à cet endroit.");
+      end if;
+      
+   end;
+
+      Put_Line("Invalid path: either the parent doesn't exist or the name is already taken.");
+   end loop;
 
       copyRepoFile(To_string(source_file), To_string(new_file), current_directory);
       delete(To_string(source_file), current_directory);
@@ -840,39 +845,17 @@ package body sgf is
 
    ---------- Preparation of SGF orders
 
-   procedure changeDirectory(path : in String) is
-         parent_destination : P_file;
-         destination : P_file;
-
+   procedure changeDirectory(path : in String; current_directory : in out P_file) is
+      destination : P_file;
    begin
+      -- On utilise parsePath pour trouver le dossier cible
+      destination := parsePath(path, current_directory);
 
-      if path = ".." then
-         if SGF.current_directory.rep_parent /= null then
-            SGF.current_directory := SGF.current_directory.rep_parent;
-         else
-            Put_Line("Vous etes deja a la racine.");
-         end if;
-         return; -- On s'arrête là, le travail est fait
-      end if;
-   
-      if containsSlash(path) then
-         parent_destination := SGF.extractParent(path,SGF.current_directory);
-         destination := sgf.findChild(parent_destination.L_enfant.all, To_String(getName(path)));
+      if destination /= null and then destination.isRepo then
+         current_directory := destination; -- C'est ici que la magie opère
       else
-         destination := sgf.findChild(SGF.current_directory.L_enfant.all, To_String(getName(path)));
+         Put_Line("Error: Directory not found or it is a file.");
       end if;
-
-      if Destination = null then
-         return;
-      end if;
-
-      if not Destination.isRepo then
-         return;
-      end if;
-
-      SGF.current_directory := Destination;
-         
-
    end changeDirectory;
 
    ----------
@@ -896,29 +879,36 @@ package body sgf is
    ----------
 
    procedure displayFileContent(path_or_name_to_display : in String) is
-
-      children_list : P_list;
-      children_list_to_display : P_list;
-      to_display, current_parent : P_file;
-
+      to_display : P_file;
+      list_ptr   : P_list;
    begin
+      -- On cherche directement l'objet visé par le chemin
+      -- parsePath gère le cas "/" et renvoie directement la racine
+      to_display := parsePath(path_or_name_to_display, SGF.current_directory);
 
-      if containsSlash (path_or_name_to_display) then 
-         current_parent := extractParent(path_or_name_to_display, SGF.current_directory);
-         children_list := getChildren(current_parent);
-         to_display := findChild(children_list.all, To_String(getName(path_or_name_to_display)));
-      else
-         current_parent := SGF.current_directory;
-         children_list := getChildren(SGF.current_directory);
-         to_display := findChild(children_list.all, path_or_name_to_display);
+      -- Cas : si le chemin n'existe pas
+      if to_display = null then
+         Put_Line("Error: Path not found.");
+         return;
       end if;
 
-      children_list_to_display := getChildren(to_display);
+      -- Cas : si c'est un fichier et non un répertoire
+      if not to_display.isRepo then
+         Put_Line("Content: " & To_String(to_display.nom));
+         return;
+      end if;
 
-      for child of children_list_to_display.all loop
-         Put_Line(To_String(child.nom));
-      end loop;
+      -- Récupération de la liste des enfants
+      list_ptr := getChildren(to_display);
 
+      -- Affichage sécurisé
+      if list_ptr /= null and then not list_ptr.all.Is_Empty then
+         for child of list_ptr.all loop
+            Put_Line(To_String(child.nom));
+         end loop;
+      else
+         Put_Line("(Empty directory)");
+      end if;
    end displayFileContent;
 
    ----------
@@ -1019,47 +1009,51 @@ package body sgf is
 
    ----------
 
-   procedure copyRepoFile(copied_name_or_path : in String; path : in String; current_dir : P_file ) is
+procedure copyRepoFile(copied_name_or_path : in String; path : in String; current_dir : P_file ) is
+   future_parent_dir  : P_file;
+   to_be_copied       : P_file;
+   Source_List        : P_list;
+   New_Name           : constant String := To_string(getName(path)); -- On extrait "file2"
+begin
+   -- 1. On cherche le PARENT de la destination (ex: la racine pour "../file2")
+   future_parent_dir := extractParent(path, current_dir);
+   
+   if future_parent_dir = null then
+       Put_Line("Erreur : Le dossier de destination est introuvable.");
+       return;
+   end if;
+   
+   if not future_parent_dir.isRepo then
+       Put_Line("Erreur : La destination doit être un dossier.");
+       return;
+   end if;
 
-         future_parent_dir  : P_file;
-         to_be_copied       : P_file;
-         children_list_temp : P_list; 
-         Dest_List : P_list;
+   -- 2. On cherche la source
+   Source_List := Collect_Targets(copied_name_or_path, current_dir);
 
-   begin
+   if Source_List.Is_Empty then
+      Put_Line("Erreur : Source introuvable (" & copied_name_or_path & ")");
+      return;
+   end if;
 
-      Dest_List := Collect_Targets(path, current_dir);
+   -- 3. On effectue la copie
+   for Element of Source_List.all loop
+      to_be_copied := Element;
       
-      if Dest_List.Is_Empty then
-          Put_Line("Erreur : Destination introuvable (" & path & ")");
-          return;
-      end if;
-      
-      future_parent_dir := Dest_List.First_Element;
-      
-      if not future_parent_dir.isRepo then
-          Put_Line("Erreur : La destination '" & To_String(future_parent_dir.nom) & "' doit être un dossier.");
-          return;
-      end if;
-
-      children_list_temp := Collect_Targets(copied_name_or_path, current_dir);
-
-      if children_list_temp.Is_Empty then
-         Put_Line("Erreur : Source introuvable (" & copied_name_or_path & ")");
-         return;
-      end if;
-      for Element of children_list_temp.all loop
+      if to_be_copied = future_parent_dir then
+         Put_Line("Erreur : Impossible de copier le dossier dans lui-même.");
+      else
+         -- ATTENTION : Ton Copy_Recursive doit probablement être adapté 
+         -- pour prendre en compte le nouveau nom "New_Name" 
+         -- sinon il gardera le nom "file1" dans le nouveau dossier.
+         Copy_Recursive(to_be_copied, future_parent_dir);
          
-         to_be_copied := Element;
-         if to_be_copied = future_parent_dir then
-            Put_Line("Erreur : Impossible de copier le dossier dans lui-même.");
-         else
-            Copy_Recursive(to_be_copied, future_parent_dir);
-         end if;
-         
-      end loop;
-
-   end copyRepoFile;
+         -- ASTUCE : Une fois copié, on change le nom du dernier enfant ajouté
+         -- pour qu'il s'appelle "file2" et non plus "file1"
+         future_parent_dir.L_enfant.Last_Element.nom := To_Unbounded_String(New_Name);
+      end if;
+   end loop;
+end copyRepoFile;
 
    ----------
 
@@ -1111,20 +1105,20 @@ package body sgf is
       
    ----------
 
-   procedure menuChangeDirectory(current_directory: in P_file) is
+   procedure menuChangeDirectory(current_directory: in out P_file) is
 
       name: Unbounded_String;
       
    begin
 
       loop
-         Put_Line("Please enter the directory you want to move in:");
+         Put_Line("Please enter the directory you wish to move in:");
          name := To_Unbounded_String(Get_Line);
          exit when getExisting(To_String(name), current_directory) and isDirectory (To_String(name), current_directory);
          Put_Line("Invalid path, please try again");
       end loop;
 
-      changeDirectory (To_String(name));
+      changeDirectory(To_String(name), current_directory);
 
    end menuChangeDirectory;
 
@@ -1187,7 +1181,9 @@ package body sgf is
       loop
 
          Put_Line("Please enter the name of the directory for which you wish to display the content:");
+
          path := To_Unbounded_String(Get_Line);
+
          exit when getPathValidity(To_string(path)) 
          and then getExisting(To_String(path), current_directory) 
          and then isDirectory (To_String(path), current_directory);
@@ -1196,9 +1192,9 @@ package body sgf is
       end loop;
 
       if choice = 'a' then
-         displayFileContent(path);
+         displayFileContent(To_String(path));
       else
-         displayFileContentRecursive(path, current_directory);
+         displayFileContentRecursive(To_String(path), current_directory);
       end if;
 
    end menuDisplayFile;
@@ -1250,7 +1246,7 @@ package body sgf is
 
    --------
 
-   procedure interactiveMenu(racine: in P_file; current_directory: in P_file) is
+   procedure interactiveMenu(current_directory: in out P_file) is
 
       choice: Integer;
 
@@ -1283,8 +1279,8 @@ package body sgf is
             menuRemoveFile(current_directory);
          when 4 => 
             menuRenameOrMove(current_directory);
-         when 5 =>
-            menuChangeSize(current_directory);
+         --  when 5 =>
+         --     menuChangeSize(current_directory);
          when 6 =>
             menuDisplayFile(current_directory);
          when 7 =>

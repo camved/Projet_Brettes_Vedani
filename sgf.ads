@@ -264,11 +264,13 @@ package sgf is
 
    --Nom : changeDirectory(cd)
    --Objectif : changer la valeur de current_file
-   --Paramètres : name_file_to_go
+   --Paramètres :
+      --path: in String
+      --current_directory: in out P_file
    --Pré : le chemin est valide et mène à un répertoire existant
    --Post : le current directory du module SGF est bien changé
    --Test : vérifier que le current directory corrrespond bien au fichier concerné par le chemin
-   procedure changeDirectory(path : in String) ;
+   procedure changeDirectory(path : in  String; current_directory: in out P_file) ;
 
    --Nom : getCurrentPath (pwd)
    --Objectif : Retourner le chemin absolu du fichier actuelle
@@ -303,7 +305,7 @@ package sgf is
    --Pré : copied existe dans le repertoire designe et le chemin est valide pour acceder au parent
    --Post : le fichier est copié au bon endroit
    --Test : être en mesure de vérifier que le fichier copié est au bonne endroit et identique au premier
-   procedure copyRepoFile(path : in String; copied_name_or_path : in String; current_dir : P_file );
+   procedure copyRepoFile(copied_name_or_path : in String; path : in String; current_dir : P_file );
 
    --Nom : menuSwitchUser
    --Objectif : changer d'utilisateur
@@ -312,7 +314,12 @@ package sgf is
    --Post :
    procedure menuSwitchUser;
 
-   procedure changeSize(file : in P_file; new_data : in Integer);
+   --Nom: changeSize
+   --Objectif : 
+   --Paramètres :
+      --file: in P_file
+      --
+   --procedure changeSize(file : in P_file; new_data : in Integer);
 
    --Nom: menuCreate
    --Objectif: guider l'utilisateur dans la création d'un fichier, qu'il soit répertoire ou pas
@@ -325,10 +332,10 @@ package sgf is
    --Nom: menuChangeDirectory
    --Objectif: guider l'utilisateur dans le changement de son current_directory
    --Paramètres :
-      --current_directory: in P_file
+      --current_directory: in out P_file
    --Pré:
    --Post:
-   procedure menuChangeDirectory(current_directory: in P_file);
+   procedure menuChangeDirectory(current_directory: in out P_file);
 
    --Nom: menuRemoveFile
    --Objectif : guider l'utilisateur dans la supression d'un fichier, qu'il soit répertoire ou fichier
@@ -377,11 +384,10 @@ package sgf is
    --Nom: interactiveMenu
    --Objectif: guider l'utilisateur à travers l'exécution de toutes les commandes
    --Paramètres: 
-      --racine: in P_file
-      --current_directory: in P_file
+      --current_directory: in out P_file
    --Pré: racine créée
    --Post: 
-   procedure interactiveMenu(racine: in P_file; current_directory: in P_file);
+   procedure interactiveMenu(current_directory: in out P_file);
 
    --Nom: menuDisplayFile
    --Objectif: permettre l'affichage du contenu d'un répertoire (= ls) ou récursivement de tous les répertoires (ls -r)
@@ -392,4 +398,4 @@ package sgf is
    procedure menuDisplayFile(current_directory: in P_file);
 
 
-end SGF;
+end sgf;
