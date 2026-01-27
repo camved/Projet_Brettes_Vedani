@@ -1,4 +1,5 @@
 with sgf;
+with memoire;
 
 package body sgf is
 
@@ -105,7 +106,7 @@ package body sgf is
 
       ----------
 
-   function Collect_Targets(Name_Or_Path : String; Current_Dir : P_file) return P_list is
+   function Collect_Targets(Name_Or_Path : String; Current_Dir : P_file; memoire : out Mem) return P_list is
       Target_List  : P_list := new File_List_Pkg.List;
       Parent_Dir   : P_file;
       Pattern_Name : Unbounded_String;
@@ -146,17 +147,19 @@ package body sgf is
 
    ---------- Root Initialization
 
-   procedure initRacine (root: in out file) is
+   procedure initRacine (root: in out file; memoire: in out Mem) is
       pointer_root : P_file;
+      
    begin
 
       pointer_root := new file;
       pointer_root.nom := To_Unbounded_String("/");
       pointer_root.droits_acces := sgf.current_user;
-      pointer_root.taille := 1; --Volume total divisé par 10Ko pour qu'on ne manie qu'une unité simple
+      pointer_root.taille := 10; --Volume total divisé par 10Ko pour qu'on ne manie qu'une unité simple
       pointer_root.rep_parent := null;
       pointer_root.L_enfant := new File_List_Pkg.List;
       pointer_root.isRepo := True;
+      pointer_root.adress := allocateMem(memoire, pointer_root.taille);
 
       root := pointer_root.all;
       current_directory := pointer_root;
@@ -165,7 +168,7 @@ package body sgf is
 
    ---------- Files and directories initialization/destruction
       
-   procedure createFile (nom_or_path: in String; isRepo : in Boolean) is
+   procedure createFile (nom_or_path: in String; isRepo : in Boolean; memoire : in out Mem) is
       pointer_created : P_file;
       nom : Unbounded_String;
       
@@ -183,15 +186,15 @@ package body sgf is
          else
             nom := To_Unbounded_String(nom_or_path);
          end if;
+
+         
          pointer_created := new file;
          pointer_created.nom := nom;
          pointer_created.droits_acces := sgf.current_user;
-         pointer_created.taille := 1;
+         pointer_created.taille := 10;
          pointer_created.rep_parent := Target_Parent; 
          pointer_created.isRepo := isRepo;
-
-         --  changeSize (Target_Parent, 1); MODIFIED
-
+         pointer_created.adress := allocateMem(memoire, pointer_created.taille);
          if isRepo then
             pointer_created.L_enfant := new File_List_Pkg.List; 
          else
@@ -210,7 +213,7 @@ package body sgf is
 
    ----------
 
-   procedure delete (name_or_path: in String ; current_dir : P_file) is
+   procedure delete (name_or_path: in String ; current_dir : P_file; memoire: in out Mem) is
       pointer_deleted : P_file; 
       Target_Parent : P_file; 
       C : File_List_Pkg.Cursor;
@@ -234,8 +237,8 @@ package body sgf is
              
          else
              Target_Parent := pointer_deleted.rep_parent;
-             
              C := File_List_Pkg.Find(Container => Target_Parent.L_enfant.all, Item => pointer_deleted);
+             freeMem(memoire, pointer_deleted.adress, pointer_deleted.taille);
              
              if Has_Element(C) then
                 Target_Parent.L_enfant.all.Delete(C);
@@ -306,6 +309,8 @@ package body sgf is
             
          end if;
       end loop;
+
+      freeMem(memoire, deleted_to_be.adress, deleted_to_be.taille);
 
    end deleteDirectory;
 

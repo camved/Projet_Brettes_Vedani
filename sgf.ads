@@ -6,6 +6,7 @@ with Ada.Containers;             use Ada.Containers;
 with Ada.Characters.Handling;    use Ada.Characters.Handling;
 with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Strings.Fixed;          use Ada.Strings.Fixed;
+with memoire; use memoire;
 with Ada.Numerics.Discrete_Random;
 with Ada.Unchecked_Deallocation;
 
@@ -29,6 +30,7 @@ package sgf is
       rep_parent: P_file;
       L_enfant: P_list;
       isRepo: Boolean;
+      adress : Integer;
 
    end record;
 
