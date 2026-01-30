@@ -1520,7 +1520,7 @@ end copyRepoFile;
             if Arg1 /= "" then
                current_user := Arg1;
                Put_Line("Connecté en tant que : " & To_String(current_user));
-         
+            end if;
          elsif Command = "touch" then
             if Arg1 /= "" then 
                SGF.createFile(To_String(Arg1), False, memoire_SGF); 
