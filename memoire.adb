@@ -106,14 +106,14 @@ package body memoire is
       current : P_block_available := memoire.first_Element;
    begin
       Put_Line("-----------------------------------------------------");
-      Put_Line("ETAT DE LA MEMOIRE (Liste des blocs libres) :");
+      Put_Line("Bloc libres:");
       
       if current = null then
-         Put_Line("  [MEMOIRE PLEINE] (Aucun bloc libre)");
+         Put_Line("Mémoire");
       else
          while current /= null loop
-            Put("  [Adresse :" & Integer'Image(current.first_bit) & 
-                " | Taille :" & Integer'Image(current.size) & " ]");
+            Put("  Adresse :" & Integer'Image(current.first_bit) & 
+                "  Taille :" & Integer'Image(current.size) & " ]");
                 
             if current.p_next /= null then
                Put(" -> ");

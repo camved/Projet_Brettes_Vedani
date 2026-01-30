@@ -10,7 +10,7 @@ with memoire; use memoire;
 with Ada.Numerics.Discrete_Random;
 with Ada.Unchecked_Deallocation;
 with Ada.Exceptions;
-
+with GNAT.String_Split;     use GNAT.String_Split;
 package sgf is
 
 --SGF types
@@ -488,4 +488,5 @@ package sgf is
       --Si mémoire pleine : Aucune modification, message d'erreur affiché
    procedure editFile(path : in String; current_dir : in P_file; memoire : in out Mem);
 
+   procedure terminal(current_directory : in out P_file; memoire : in out Mem);
 end sgf;
