@@ -298,8 +298,7 @@ package sgf is
    function getCurrentDirectory return P_file;
 
 
-      --return: Integer
-   function plumaSimulator return Integer;
+   function nvimSimulator return Integer;
 
    --Nom : changeDirectory(cd)
    --Objectif : changer la valeur de current_file vers un répertoire choisi
@@ -375,6 +374,7 @@ package sgf is
       --new_data: in Integer
    --Pré:
    --Post:
+      --
    procedure changeSize(file : in P_file; new_data : in Integer);
 
    --Nom: menuCreate
@@ -464,5 +464,6 @@ package sgf is
    --Post: 
    procedure menuDisplayFile(current_directory: in P_file);
 
+   procedure editFile(path : in String; current_dir : in P_file; memoire : in out Mem);
 
 end sgf;

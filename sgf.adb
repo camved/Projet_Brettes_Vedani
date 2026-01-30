@@ -299,6 +299,8 @@ package body sgf is
             end loop;
 
             -- SUPPRESSION DU DOSSIER LUI-MÊME
+            freeMem(memoire, deleted_to_be.adress, deleted_to_be.taille);
+
             target_parent := deleted_to_be.rep_parent;
             child_cursor := Find(target_parent.L_enfant.all, deleted_to_be);
             
@@ -310,7 +312,7 @@ package body sgf is
          end if;
       end loop;
 
-      freeMem(memoire, deleted_to_be.adress, deleted_to_be.taille);
+
 
    end deleteDirectory;
 
@@ -845,7 +847,7 @@ end extractParent;
    
    ----------
 
-   function plumaSimulator return Integer is
+   function nvimSimulator return Integer is
 
       subtype Intervalle is Integer range 0 .. 10_000;
       package Aleatoire is new Ada.Numerics.Discrete_Random (Intervalle);
@@ -859,7 +861,34 @@ end extractParent;
       nombre := Random(Gen);
       return nombre;
 
-   end plumaSimulator;
+   end nvimSimulator;
+
+   ----------
+
+   procedure editFile(path : in String; current_dir : in P_file ; memoire : in out Mem) is
+      target : P_file;
+      added_size : Integer;
+   begin
+      -- C'est ICI qu'on utilise parsePath, comme pour cd ou ls
+      target := parsePath(path, current_dir);
+
+      -- Vérifications
+      if target = null then
+         Put_Line("Erreur : Fichier introuvable.");
+         return;
+      elsif target.isRepo then
+         Put_Line("Erreur : Impossible d'éditer un dossier avec nvim.");
+         return;
+      end if;
+
+      -- Action
+      added_size := nvimSimulator;
+      changeSize(target, added_size);
+      
+      Put_Line("Édition terminée pour '" & To_String(target.nom) & "'.");
+      Put_Line(" + " & Integer'Image(added_size) & " octets (Nouvelle taille : " & Integer'Image(target.taille) & " o)");
+
+   end editFile;
 
    ---------- Preparation of SGF orders
 

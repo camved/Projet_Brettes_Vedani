@@ -52,28 +52,34 @@ package body memoire is
       new_block : P_block_available;
 
    begin
-      
+      -- 1. Trouver l'emplacement
       while current /= null and then current.first_bit < Address loop
          previous := current;
          current  := current.p_next;
       end loop;
 
+      -- 2. Essayer de fusionner avec le PRECEDENT (Gauche)
       if previous /= null and then 
          (previous.first_bit + previous.size = address) 
       then
-         
+         -- On agrandit le précédent tout de suite !
+         previous.size := previous.size + size;
+
+         -- Maintenant, on regarde si ce précédent agrandi touche le SUIVANT (Droite)
          if current /= null and then 
             (previous.first_bit + previous.size = current.first_bit) then
             
-            -- fusion totale 
+            -- Fusion totale : on absorbe le suivant
             previous.size := previous.size + current.size; 
             previous.p_next := current.p_next;           
             Free(current);                                 
          end if;
          
-         return; 
+         return; -- Travail terminé
       end if;
 
+      -- 3. Essayer de fusionner avec le SUIVANT (Droite) seulement
+      -- (Si on arrive ici, c'est qu'on n'a pas fusionné avec le précédent)
       if current /= null and then 
          (Address + Size = current.first_bit) then
          
@@ -83,7 +89,7 @@ package body memoire is
          return;
       end if;
 
-      
+      -- 4. Pas de fusion possible : Insertion d'un nouveau bloc
       new_block := new Block_available'(first_bit => Address, 
                                        size            => Size, 
                                        p_next         => current); 
@@ -94,6 +100,30 @@ package body memoire is
          previous.p_next := new_block;
       end if;
 
-   end FreeMem;
+   end freeMem;
+
+   procedure Afficher_Memoire(memoire : in Mem) is
+      current : P_block_available := memoire.first_Element;
+   begin
+      Put_Line("-----------------------------------------------------");
+      Put_Line("ETAT DE LA MEMOIRE (Liste des blocs libres) :");
+      
+      if current = null then
+         Put_Line("  [MEMOIRE PLEINE] (Aucun bloc libre)");
+      else
+         while current /= null loop
+            Put("  [Adresse :" & Integer'Image(current.first_bit) & 
+                " | Taille :" & Integer'Image(current.size) & " ]");
+                
+            if current.p_next /= null then
+               Put(" -> ");
+            end if;
+            
+            current := current.p_next;
+         end loop;
+         New_Line;
+      end if;
+      Put_Line("-----------------------------------------------------");
+   end Afficher_Memoire;
 
 end memoire;

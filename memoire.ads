@@ -1,3 +1,5 @@
+with Ada.Text_IO; use Ada.Text_IO;
+
 package memoire is
 
    type Block_available;
@@ -30,6 +32,6 @@ package memoire is
 
    procedure freeMem(memoire : in out Mem; address : in Integer; size : in Integer);
 
-
+   procedure Afficher_Memoire(memoire : in Mem);
 
 end memoire;
