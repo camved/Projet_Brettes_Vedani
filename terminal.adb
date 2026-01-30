@@ -3,6 +3,9 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with SGF;                   use SGF;
 with GNAT.String_Split;     use GNAT.String_Split;
 with Ada.Containers;        use Ada.Containers; -- Nécessaire pour afficher la taille des listes
+with memoire; use memoire;
+with Ada.Strings;           use Ada.Strings;
+with Ada.Strings.Fixed;     use Ada.Strings.Fixed;
 
 procedure terminal is
 
@@ -12,7 +15,8 @@ procedure terminal is
    Arg2       : Unbounded_String;
    
    Racine_SGF : SGF.file; 
-   Dossier_Courant : SGF.P_file; 
+   Dossier_Courant : SGF.P_file;
+   memoire_SGF : Mem;
 
 begin
    New_Line;
@@ -37,8 +41,8 @@ begin
    Put_Line("=============================================");
    New_Line;
 
-
-   SGF.initRacine(Racine_SGF);
+   initMem(memoire_SGF);
+   SGF.initRacine(Racine_SGF, memoire_SGF);
    New_Line;
 
    loop
@@ -99,40 +103,49 @@ begin
 
       elsif Command = "mkdir" then
          if Arg1 /= "" then 
-            SGF.createFile(To_String(Arg1), True); 
+            SGF.createFile(To_String(Arg1), True, memoire_SGF); 
          end if;
 
       elsif Command = "touch" then
          if Arg1 /= "" then 
-            SGF.createFile(To_String(Arg1), False); 
+            SGF.createFile(To_String(Arg1), False, memoire_SGF); 
          end if;
 
       elsif Command = "cd" then
          if Arg1 /= "" then 
-            SGF.changeDirectory(To_String(Arg1)); 
+            SGF.changeDirectory(To_String(Arg1), SGF.current_directory); 
          end if;
 
       elsif Command = "rm" then
-         if Arg1 /= "" then 
-            SGF.delete(To_String(Arg1), SGF.getCurrentDirectory); 
+         -- Comparaison explicite convertie en String
+         if To_String(Arg1) = "-r" then
+             if Arg2 /= "" then
+                SGF.deleteDirectory(To_String(Arg2), SGF.getCurrentDirectory, memoire_SGF);
+             else
+                Put_Line("Usage : rm -r <dossier>");
+             end if;
+         elsif Arg1 /= "" then 
+            SGF.delete(To_String(Arg1), SGF.getCurrentDirectory, memoire_SGF);
          else
-            Put_Line("Usage : rm <fichier_ou_pattern>");
-         end if;
-
-      elsif Command = "rm -r" then
-         if Arg1 /= "" then 
-            SGF.deleteDirectory(To_String(Arg1), SGF.getCurrentDirectory); 
+            Put_Line("Usage : rm <fichier> ou rm -r <dossier>");
          end if;
 
       elsif Command = "cp" then
          if Arg1 /= "" and Arg2 /= "" then
-            SGF.copyRepoFile(To_String(Arg2), To_String(Arg1), SGF.getCurrentDirectory);
+            SGF.copyRepoFile(To_String(Arg2), To_String(Arg1), SGF.getCurrentDirectory, memoire_SGF);
          else
             Put_Line("Usage : cp <source> <dest>");
          end if;
       
       elsif Command = "pwd" then
          Put_Line(To_String(SGF.getCurrentPath(SGF.getCurrentDirectory)));
+
+      elsif Command = "nvim" then
+            if Arg1 /= "" then
+               SGF.editFile(To_String(Arg1), SGF.getCurrentDirectory,memoire_SGF);
+            else
+               Put_Line("Usage : nvim <fichier>");
+            end if;
       
       elsif Command /= "" then
          Put_Line("Commande inconnue : " & To_String(Command));
