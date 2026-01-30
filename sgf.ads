@@ -55,7 +55,9 @@ package sgf is
 
    --Nom : initRacine
    --Objectif : Créer un répertoire racine / vide et accessible par n'importe qui
-   --Paramètres : root in out, type file
+   --Paramètres : 
+      --root: in out, type file
+      --memoire: in out, Mem
    --Pré : pas de répertoire racine créé
    --Post : un répertoire racine créé
    --Test : être en mesure de se déplacer dans le répertoire racine avec cd une fois le répertoire racine créé
@@ -64,6 +66,9 @@ package sgf is
    --Nom : createFile
    --Objectif : Créer un fichier dont on choisit le nom, les droits à l'endroit de notre choix.
    --Paramètres :
+      --nom_or_path: in String
+      --isRepo: in Boolean
+      --memoire: in out Mem
    --Pré : pas de fichier appelé pareil créé dans le répertoire père
    --Post :
       -- répertoire parent est bien un répertoire (file.rep_parent.all.isRepo = True)
@@ -72,7 +77,10 @@ package sgf is
 
    --Nom : delete (~rm)
    --Objectif : supprimer un fichier ou un répertoire
-   --Paramètres : path in, type String,  current_dir in, type P_file
+   --Paramètres : 
+      --name_or_path: in String
+      --current_dir : in P_file
+      --memoire: in out Mem
    --Pré : le chemin est valide et existe dans le SGF et curren_dir n'est pas vide
    --Post : l'entité voulue est bien supprimée au bon endroit
    --Test : être en mesure de vérifier que l'entité supprimée n'existe plus
@@ -80,7 +88,10 @@ package sgf is
 
    --Nom : deleteDirectory (~rm -r)
    --Objectif : supprimer un répertoire contenant d'autres entités
-   --Paramètres : path in, type String,  current_dir in, type P_file
+   --Paramètres :
+      --name_or_path: in String
+      --current_dir: P_file
+      --memoire: in out Mem
    --Pré : le chemin est valide et existe dans le SGF et curren_dir n'est pas vide
    --Post : l'entité voulue est bien supprimée au bon endroit, et ses enfants aussi
    --Test : être en mesure de vérifier que l'entité supprimée n'existe plus et ses enfants non plus
@@ -88,7 +99,9 @@ package sgf is
 
    --Nom : getChildren
    --Objectif : Retourner le pointeur des enfants 
-   --Paramètres : adress_file in, type P_file
+   --Paramètres : 
+      --adress_file: in P_file
+      --return: P_list
    --Pré : le fichier pointé par adress_file existe, le pointeur de la liste d'enfant existe  
    --Post : le pointeur de la liste d'enfant est retourné
    --Test : être en mesure de retourner l'adresse de la liste enfant.
@@ -96,7 +109,10 @@ package sgf is
 
    --Nom : findChild
    --Objectif : chercher dans la liste des enfants 
-   --Paramètres : children_list in, type List, child_to_find in, type String
+   --Paramètres : 
+      --children_list: in List
+      --child_to_find: in String
+      --return: P_file
    --Pré : La liste n'est pas vide, 
    --Post : le chemin absolu du fichier actuel est retourné
    --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
@@ -112,7 +128,9 @@ package sgf is
 
    --Nom : containsSlash
    --Objectif : déterminer si un string contient le symbole "/"
-   --Paramètres : Text in, type String
+   --Paramètres : 
+      --Text: in String
+      --return: Boolean
    --Pré : 
    --Post : renvoie true si oui, false si non.
    --Test : constater que la valeur retournée d'un texte correcpond à la valeur 
@@ -124,6 +142,7 @@ package sgf is
    --Exemple : /usr/share/alexis_camille/raptor.txt renvoie raptor.txt
    --Paramètre :
       --path: in String
+      --return: unbounded_string
    --Pré : chemin valide
    --Post : découpage correct
    function getName(path : in String) return unbounded_string;
@@ -142,7 +161,8 @@ package sgf is
    --Objectif: renvoyer l'adresse du fichier cherché
    --Paramètres:
       --fichier: in String
-      --current_directory: in P_file
+      --Current_Directory: in P_file
+      --return: P_file
    --Pré: chemin relatif uniquement -> premier caractère = lettre ou .
    --Post: adresse renvoyée
    --Exception: NOT_EXISTING
@@ -170,6 +190,7 @@ package sgf is
    --Paramètre :
       -- fichier : in String
       -- current_directory : in P_file
+      --return: P_file
    --Pré : 
       --String de taille > 0
       --Premier caractère lettre ou . ou /
@@ -229,7 +250,7 @@ package sgf is
    --Nom: testGetPathValidity
    --Objectif: afficher à l'écran si le chemin rentré est correct ou pas
    --Paramètre: 
-      --path: in String
+      --isValid: in Boolean
    --Pré: String en entrée
    --Post:
    procedure testGetPathValidity(isValid: in Boolean);
@@ -261,18 +282,22 @@ package sgf is
    --Objectif: renvoyer l'adresse de la racine
    --Paramètre: 
       --current_directory: in P_file
+      --return: P_file
    --Pré: racine créée
    --Post: l'adresse de la racine est renvoyée
    function findRoot (current_directory:  in P_file) return P_file;
 
    --Nom : getCurrentDirectory
    --Objectif : Retourner le chemin absolu du fichier actuelle
-   --Paramètres : current_file in, type P_file
+   --Paramètres :
+      --return P_file
    --Pré : current_file existe dans le sgf
    --Post : le chemin absolu du fichier actuel est retourné
    --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
    function getCurrentDirectory return P_file;
 
+
+      --return: Integer
    function plumaSimulator return Integer;
 
    --Nom : changeDirectory(cd)
@@ -287,7 +312,9 @@ package sgf is
 
    --Nom : getCurrentPath (pwd)
    --Objectif : Retourner le chemin absolu du fichier actuelle
-   --Paramètres : current_file in, type P_file
+   --Paramètres : 
+      --pwd_file: in P_file
+      --return: Unbounded_String
    --Pré : current_file existe dans le sgf
    --Post : le chemin absolu du fichier actuel est retourné
    --Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
@@ -302,11 +329,21 @@ package sgf is
    --Test : tout s'affiche à l'écran après l'appel de la fonction
    procedure displayFileContent(path_or_name_to_display : in String);
 
+   --Nom: displayFileContentRecursive
+   --Objectif: permettre l'affichage du contenu d'un répertoire de manière récursive (ls -r)
+   --Paramètres: 
+      --path_or_name_to_display: in String
+      --current_dir : P_file
+   --Pré: path pointe sur un répertoire 
+   --Post:
    procedure displayFileContentRecursive(path_or_name_to_display : in String; current_dir : P_file; indent : Natural := 0);
 
    --Nom : copy
    --Objectif : procedure outils qui va copier un fichier ou repertoire dans un autre fichier
-   --Paramètres : to_be_copied in, type P_file,  new_parent in, type P_file
+   --Paramètres : 
+      --to_be_copied: in P_file
+      --new_parent: in P_file
+      --memoire: in out Mem
    --Pré : to_be_copied existe bien
    --Post : le fichier est copié au bon endroit
    --Test : être en mesure de vérifier que le fichier copié est au bonne endroit et identique au premier
@@ -314,7 +351,11 @@ package sgf is
 
    --Nom : copyFile (cp)
    --Objectif : copier le fichier ou le rep dans un autre repertoire de facon recurssive si le rep a des enfants
-   --Paramètres : path in, type String,  copied_name_or_path in, type String, current_dir : P_file 
+   --Paramètres :
+      --copied_name_or_path: in String
+      --path: in String
+      --current_dir: P_file
+      --memoire: in out Mem
    --Pré : copied existe dans le repertoire designe et le chemin est valide pour acceder au parent
    --Post : le fichier est copié au bon endroit
    --Test : être en mesure de vérifier que le fichier copié est au bonne endroit et identique au premier
@@ -328,16 +369,19 @@ package sgf is
    procedure menuSwitchUser;
 
    --Nom: changeSize
-   --Objectif : 
+   --Objectif : permettre de changer la taille d'un fichier
    --Paramètres :
       --file: in P_file
-      --
-   --procedure changeSize(file : in P_file; new_data : in Integer);
+      --new_data: in Integer
+   --Pré:
+   --Post:
+   procedure changeSize(file : in P_file; new_data : in Integer);
 
    --Nom: menuCreate
    --Objectif: guider l'utilisateur dans la création d'un fichier, qu'il soit répertoire ou pas
    --Paramètres :
       --current_directory: in P_file
+      --memoire: in out Mem
    --Pré:
    --Post:
    procedure menuCreate(current_directory: in P_file ; memoire : in out Mem);
@@ -359,14 +403,19 @@ package sgf is
    procedure menuRemoveFile(current_directory: in P_file ; memoire : in out Mem);
 
    -- Dans sgf.ads
+
+      --return: Boolean
    function Match_Pattern(FileName : String; Pattern : String) return Boolean;
+
+      --return: P_list
    function getRegexFiles (pattern : String; current_dir : P_file) return P_list;
+
+
    --Nom: menuRenameOrMove
    --Objectif : guider l'utilisateur dans le déplacement d'un fichier
    --Paramètres :
-      --source_file: in String
-      --new_file: in String
       --current_directory: in P_file
+      --memoire: in out Mem
    --Pré: racine créée
    --Post: 
    procedure menuRenameOrMove(current_directory: in P_file ; memoire : in out Mem);
@@ -386,10 +435,14 @@ package sgf is
    --Post :
    procedure displayUser;
 
+      --return: P_list
+   function Collect_Targets(Name_Or_Path: String; Current_Dir: P_file) return P_list;
+
    --Nom : isOwner
    --Objectif : dire si le current_user est le propriétaire ou pas
    --Paramètres : 
       --file: in P_file
+      --return: boolean
    --Pré : sgf.current_user /= null
    --Post : False if sgf.current_user /= file.droits_acces, True sinon
    function isOwner (file: in P_file) return Boolean;
@@ -398,6 +451,7 @@ package sgf is
    --Objectif: guider l'utilisateur à travers l'exécution de toutes les commandes
    --Paramètres: 
       --current_directory: in out P_file
+      --memmoire: in out Mem
    --Pré: racine créée
    --Post: 
    procedure interactiveMenu(current_directory: in out P_file ; memoire : in out Mem);
