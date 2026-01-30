@@ -402,12 +402,24 @@ package sgf is
    --Post:
    procedure menuRemoveFile(current_directory: in P_file ; memoire : in out Mem);
 
-   -- Dans sgf.ads
-
-      --return: Boolean
+   --Nom : Match_Pattern
+   --Objectif : Vérifier si un nom de fichier correspond à un motif (regex simplifié avec *)
+   --Paramètres :
+      --FileName : in String (Le nom du fichier à tester)
+      --Pattern : in String (Le motif, ex: "*.txt")
+      --return : Boolean
+   --Pré : FileName et Pattern non vides
+   --Post : True si le fichier correspond au motif, False sinon
    function Match_Pattern(FileName : String; Pattern : String) return Boolean;
 
-      --return: P_list
+   --Nom : getRegexFiles
+   --Objectif : Retourner une liste de fichiers correspondant à un motif regex
+   --Paramètres :
+      --pattern : in String (Le motif de recherche)
+      --current_dir : in P_file (Le répertoire où chercher)
+      --return : P_list (Liste des fichiers trouvés)
+   --Pré : current_dir valide
+   --Post : Retourne une liste (vide si aucun match)
    function getRegexFiles (pattern : String; current_dir : P_file) return P_list;
 
 
@@ -464,6 +476,16 @@ package sgf is
    --Post: 
    procedure menuDisplayFile(current_directory: in P_file);
 
+   --Nom : editFile (nvim)
+   --Objectif : Simuler l'édition d'un fichier en modifiant sa taille et en gérant la réallocation mémoire
+   --Paramètres :
+      --path : in String (Chemin du fichier à éditer)
+      --current_dir : in P_file (Répertoire de travail actuel)
+      --memoire : in out Mem (Le système de mémoire à mettre à jour)
+   --Pré : Le fichier existe et n'est pas un répertoire
+   --Post : 
+      --Si assez de mémoire : Taille fichier augmentée et adresse potentiellement changée
+      --Si mémoire pleine : Aucune modification, message d'erreur affiché
    procedure editFile(path : in String; current_dir : in P_file; memoire : in out Mem);
 
 end sgf;

@@ -20,18 +20,42 @@ package memoire is
 
    Erreur_Disque_Plein : Exception;
 
-   --Nom : copyFile (cp)
-   --Objectif : copier le fichier ou le rep dans un autre repertoire de facon recurssive si le rep a des enfants
-   --Paramètres : path in, type String,  copied_name_or_path in, type String, current_dir : P_file 
-   --Pré : copied existe dans le repertoire designe et le chemin est valide pour acceder au parent
-   --Post : le fichier est copié au bon endroit
-   --Test : être en mesure de vérifier que le fichier copié est au bonne endroit et identique au premier
+   --Nom : initMem
+   --Objectif : Initialiser le système de mémoire (création du premier bloc libre)
+   --Paramètres :
+      --memoire : out Mem
+   --Pré : Variable memoire non initialisée
+   --Post : memoire contient un bloc libre initial (ex: 1 Go) et pointeur de tête valide
    procedure initMem (memoire : out Mem);
 
+   --Nom : allocateMem
+   --Objectif : Allouer un bloc de mémoire d'une taille donnée
+   --Paramètres :
+      --memoire : in out Mem
+      --size : in Integer (Taille demandée)
+      --return : Integer (Adresse du bloc alloué)
+   --Pré : size > 0, initMem a été appelé
+   --Post :
+      --Retourne l'adresse de début du bloc alloué
+      --Exception Erreur_Disque_Plein levée si pas assez d'espace contigu
    function allocateMem(memoire : in out Mem; size : in Integer) return Integer;
 
+   --Nom : freeMem
+   --Objectif : Libérer un bloc de mémoire précédemment alloué
+   --Paramètres :
+      --memoire : in out Mem
+      --address : in Integer (Adresse du bloc à libérer)
+      --size : in Integer (Taille du bloc à libérer)
+   --Pré : Le bloc à cette adresse était occupé
+   --Post : L'espace est marqué comme libre et potentiellement fusionné avec les voisins
    procedure freeMem(memoire : in out Mem; address : in Integer; size : in Integer);
 
+   --Nom : Afficher_Memoire
+   --Objectif : Afficher l'état actuel de la mémoire (blocs libres) pour le débogage
+   --Paramètres :
+      --memoire : in Mem
+   --Pré : initMem appelé
+   --Post : Affiche la liste chaînée des blocs libres sur la sortie standard
    procedure Afficher_Memoire(memoire : in Mem);
 
 end memoire;
