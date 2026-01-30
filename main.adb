@@ -13,6 +13,7 @@ begin
    -- Initialisation unique au début
    initMem(Memoire_SGF);
    SGF.initRacine(Racine_SGF, Memoire_SGF);
+
    
    -- Le dossier courant démarre à la racine (ou utilisez SGF.current_directory si global)
    Dossier_Courant := SGF.getCurrentDirectory;
