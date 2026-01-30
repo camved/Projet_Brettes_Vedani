@@ -866,11 +866,11 @@ end extractParent;
    procedure changeDirectory(path : in String; current_directory : in out P_file) is
       destination : P_file;
    begin
-      -- On utilise parsePath pour trouver le dossier cible
+      -- Utilisation de parsePath pour trouver le dossier cible
       destination := parsePath(path, current_directory);
 
       if destination /= null and then destination.isRepo then
-         current_directory := destination; -- C'est ici que la magie opère
+         current_directory := destination;
       else
          raise NOT_A_DIRECTORY;
       end if;
@@ -901,7 +901,6 @@ end extractParent;
       list_ptr   : P_list;
    begin
       -- On cherche directement l'objet visé par le chemin
-      -- parsePath gère le cas "/" et renvoie directement la racine
       to_display := parsePath(path_or_name_to_display, SGF.current_directory);
 
       -- Cas : si le chemin n'existe pas
@@ -939,11 +938,11 @@ end extractParent;
 
    begin
 
-      -- 1. CAS SPECIAL : Si le chemin est "." ou vide, c'est le dossier courant lui-même
+      -- CAS SPECIAL : Si le chemin est "." ou vide, c'est le dossier courant lui-même
       if path_or_name_to_display = "." or path_or_name_to_display = "" then
          to_display := current_dir;
 
-      -- 2. SINON : On cherche le fichier/dossier demandé
+      --SINON : On cherche le fichier/dossier demandé
       elsif containsSlash (path_or_name_to_display) then 
          current_parent := extractParent(path_or_name_to_display, current_dir);
          children_list_ancestor := getChildren(current_parent);
@@ -954,12 +953,12 @@ end extractParent;
          to_display := findChild(children_list_ancestor.all, path_or_name_to_display);
       end if;
 
-      -- 3. SECURITE : Si introuvable, on sort
+      --Si introuvable, on sort
       if to_display = null then
          return;
       end if;
 
-      -- 4. AFFICHAGE ET RECURSION
+      --Affichage et récursion
       if not to_display.isRepo then 
          -- C'est un fichier
          Put_Line(indent_str & "|-- [F] " & To_String(to_display.nom));

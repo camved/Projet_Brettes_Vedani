@@ -1,3 +1,13 @@
+# Introduction
+
+    Dans le cadre de ce projet, notre objectif a été de nous rapprocher le plus possible du fonctionnement de Linux. Nous utilisons différents systèmes d'exploitation au quotidien, tous issus de Debian (Ubuntu pour Camille, Debian, Ubuntu et Pop!_OS pour Alexis). 
+    
+    Ainsi, essayer de nous référer au fonctionnement nominal de ces distributions est à la fois pour nous une manière d'approfondir nos connaissances et compétences en programmation, mais également d'acquérir des connaissances plus poussées sur le fonctionnement de nos propres ordinateurs.
+
+    Ces compétences seront transférables directement sur nos activités professionnelles, qui prendront très majoritairement place dans l'univers de Linux.
+
+
+
 # Définition des types
 
 ## file
@@ -46,8 +56,8 @@
 
     FILE_NOT_EXIST : cette exception est levée lorsqu'un répertoire est vide. Il s'agit d'un cas plus précis de VOID_INVALID_PATH.
 
-    VOID_NOT_OWNER : cette exception est levée lorsqu'un utilisateur essaie de réaliser certaines actions sur un fichier ne lui appartenant pas. 
-    Plus d'informations dans notre rubrique sur la mise en place des droits.
+    VOID_NOT_OWNER : cette exception est levée lorsqu'un utilisateur essaie de réaliser certaines actions sur un fichier ne lui appartenant pas, cf. la rubrique sur notre approche au début.
+    
 
 # Définition des sous-programmes
 

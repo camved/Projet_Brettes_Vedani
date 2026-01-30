@@ -69,9 +69,10 @@ package sgf is
       --nom_or_path: in String
       --isRepo: in Boolean
       --memoire: in out Mem
-   --Pré : pas de fichier appelé pareil créé dans le répertoire père
-   --Post :
+   --Pré : 
+      --pas de fichier appelé pareil créé dans le répertoire père
       -- répertoire parent est bien un répertoire (file.rep_parent.all.isRepo = True)
+   --Post :
       -- fichier fils bien créé et conforme à ce qui est demandé
    procedure createFile (nom_or_path: in String; isRepo : in Boolean; memoire : in out Mem);
 
@@ -301,8 +302,7 @@ package sgf is
    function plumaSimulator return Integer;
 
    --Nom : changeDirectory(cd)
-   --Objectif : changer la valeur de current_file
-   --Paramètres :
+   --Objectif : changer la valeur de current_file vers un répertoire choisi
       --path: in String
       --current_directory: in out P_file
    --Pré : le chemin est valide et mène à un répertoire existant
@@ -326,7 +326,7 @@ package sgf is
       --path_or_name_to_display: in String
    --Pré : le fichier correspondant a path_or_name_to_display existe dans le sgf
    --Post : tout le contenu s'affiche
-   --Test : tout s'affiche à l'écran après l'appel de la fonction
+   --Test : tout s'affiche à l'écran après l'appel de la procédure
    procedure displayFileContent(path_or_name_to_display : in String);
 
    --Nom: displayFileContentRecursive
@@ -334,7 +334,7 @@ package sgf is
    --Paramètres: 
       --path_or_name_to_display: in String
       --current_dir : P_file
-   --Pré: path pointe sur un répertoire 
+   --Pré: path_or_name_to_display pointe sur un répertoire 
    --Post:
    procedure displayFileContentRecursive(path_or_name_to_display : in String; current_dir : P_file; indent : Natural := 0);
 
