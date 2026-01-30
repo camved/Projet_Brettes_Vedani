@@ -1321,6 +1321,26 @@ end copyRepoFile;
 
    --------
 
+   procedure menuEditFile(current_directory: in P_file; memoire : in out Mem) is
+   
+      path: unbounded_string;
+
+   begin
+
+      Put_Line("Please enter the file you wish to edit (nvim simulation):");
+      path := To_Unbounded_String(Get_Line);
+      
+      if getExisting(To_String(path), current_directory) then
+         editFile(To_String(path), current_directory, memoire);
+      else
+         Put_Line("This file does not exist.");
+      end if;
+      New_Line;
+
+   end menuEditFile;
+
+   --------
+
    procedure interactiveMenu(current_directory: in out P_file ; memoire : in out Mem) is
 
       choice: Integer;
@@ -1357,8 +1377,8 @@ end copyRepoFile;
             menuRemoveFile(current_directory, memoire);
          when 4 => 
             menuRenameOrMove(current_directory, memoire);
-         --  when 5 =>
-         --     menuChangeSize(current_directory, memoire);
+         when 5 =>
+              menuEditFile(current_directory, memoire);
          when 6 =>
             menuDisplayFile(current_directory);
          when 7 =>
