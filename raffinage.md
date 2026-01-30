@@ -1,15 +1,5 @@
 # Définition des types
 
-## P_file
-
-    TYPE P_file EST POINTEUR SUR TYPE file 
-
-## P_list
-
-    TYPE P_list EST POINTEUR SUR File_List_Pkg.List
-
-    *Ce type est introduit par la librairie Ada.Containers.Doubly_Linked_Lists*
-
 ## file
 
     TYPE file EST ENREGISTREMENT
@@ -23,18 +13,41 @@
 
     Ce type abstrait de donnée est notre représentation du fichier. Nous essayons de coller au maximum à la philosophie Linux qui dit que tout est fichier. Ainsi, les répertoires sont des fichiers ayant simplement un booléen à True.
 
+    Ce type n'est utilisé que pour initialiser la racine et les fichiers. C'est les seules fois où l'on manipule un type file directement. 
+
+    Chaque fichier possède un seul répertoire parent. Fichiers simples comme répertoires possèdent une liste d'enfant, mais des contrôles dans les procédures de création et de déplacement de fichiers empêchent de se retrouver avec des fichiers contenus dans des fichiers simples.
+
+## P_file
+
+    TYPE P_file EST POINTEUR SUR TYPE file 
+
+    Ce type permet d'accéder aux différents champs de notre type abstrait de données. Les différents champs de ce type sont ce qui caractérise le fichier. 
+
+## P_list
+
+    TYPE P_list EST POINTEUR SUR File_List_Pkg.List
+
+    *Ce type est introduit par la librairie Ada.Containers.Doubly_Linked_Lists*
+
+    Cette librairie permet de rajouter des champs à cette liste facilement.  
+
 # Définition des exceptions
 
-    VOID_INVALID_PATH
-    VOID_ROOT_LOCATION
-    VOID_CHILD_ERROR
-    VOID_POINTER_ERROR
-    EMPTY_STRING
-    INVALID_FIRST_CHAR
-    NOT_IN_THIS_DIRECTORY
-    NOT_A_DIRECTORY
-    FILE_NOT_EXIST
-    VOID_NOT_EXISTING
+    VOID_INVALID_PATH : cette exception est levée dès lors que l'on essaie d'accéder à un fichier via un chemin erroné. De multiples sous-programmes sont en mesure de la déclencher : il peut s'agir d'un chemin impossible car ne respectant pas les syntaxes de noms que l'on a fixées, d'un chemin respectant la syntaxe mais pointant sur un fichier qui n'existe pas.
+
+
+    VOID_ROOT_LOCATION : cette exception est levée lorsque l'on essaie de supprimer la racine. 
+    Nous sommes conscients que Linux permet de le faire, cela n'a pas d'intérêt. Il faudrait obligatoirement redémarrer le programme ensuite.
+    Sur Linux, comme tout est fichier, même les périphériques et les disques montés, il n'y aurait pas le moindre avantage à le permettre.
+
+    VOID_POINTER_ERROR : cette exception détecte lorsqu'un fichier n'existe pas.
+
+    NOT_A_DIRECTORY : cette exception est levée lorsqu'on essaie d'utiliser des fonctions propres aux répertoires (isRepo = True) sur des fichiers simples. Cela permet de bien séparer les usages entre les commandes liées aux répertoires (cd, rm -r, ls -r...) et les commandes liées aux fichiers ordinaires.
+
+    FILE_NOT_EXIST : cette exception est levée lorsqu'un répertoire est vide. Il s'agit d'un cas plus précis de VOID_INVALID_PATH.
+
+    VOID_NOT_OWNER : cette exception est levée lorsqu'un utilisateur essaie de réaliser certaines actions sur un fichier ne lui appartenant pas. 
+    Plus d'informations dans notre rubrique sur la mise en place des droits.
 
 # Définition des sous-programmes
 
