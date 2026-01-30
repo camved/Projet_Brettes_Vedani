@@ -76,13 +76,13 @@ package sgf is
       -- fichier fils bien créé et conforme à ce qui est demandé
    procedure createFile (nom_or_path: in String; isRepo : in Boolean; memoire : in out Mem);
 
-   --Nom : delete (~rm)
+   --Nom : delete (rm)
    --Objectif : supprimer un fichier ou un répertoire
    --Paramètres : 
       --name_or_path: in String
       --current_dir : in P_file
       --memoire: in out Mem
-   --Pré : le chemin est valide et existe dans le SGF et curren_dir n'est pas vide
+   --Pré : le chemin est valide et existe dans le SGF
    --Post : l'entité voulue est bien supprimée au bon endroit
    --Test : être en mesure de vérifier que l'entité supprimée n'existe plus
    procedure delete (name_or_path: in String ; current_dir : P_file; memoire: in out Mem);
@@ -93,7 +93,7 @@ package sgf is
       --name_or_path: in String
       --current_dir: P_file
       --memoire: in out Mem
-   --Pré : le chemin est valide et existe dans le SGF et curren_dir n'est pas vide
+   --Pré : le chemin est valide et existe dans le SGF
    --Post : l'entité voulue est bien supprimée au bon endroit, et ses enfants aussi
    --Test : être en mesure de vérifier que l'entité supprimée n'existe plus et ses enfants non plus
    procedure deleteDirectory (name_or_path: in String ; current_dir : P_file; memoire : in out Mem);
@@ -410,6 +410,18 @@ package sgf is
       --return: P_list
    function getRegexFiles (pattern : String; current_dir : P_file) return P_list;
 
+   --Nom : renameOrMove
+   --Objectif : déplacer et éventuellement renommer un fichier
+   --Paramètres :
+      --source_file : in String
+      --new_file : in String
+      --current_directory : in P_file
+      --memoire : in out Mem
+   --Pré :
+      --getExisting(source_file, current_directory)
+      --non getExisting(new_file, current_directory)
+   --Post :
+   procedure renameOrMove(source_file : in String; new_file: in String; current_directory: in P_file; memoire : in out Mem);
 
    --Nom: menuRenameOrMove
    --Objectif : guider l'utilisateur dans le déplacement d'un fichier

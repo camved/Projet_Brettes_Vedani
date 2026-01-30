@@ -73,7 +73,7 @@
     Linux définit chaque utilisateur avec 10 caractères.
     Exemple sur le répertoire musique de la machine Pop!_OS : drwxr-xr-x
     
-    d : directory, il s'agit d'un répertoire. Un fichier serait décrit avec -
+    d : directory, il s'agit d'un répertoire. Un fichier serait décrit avec -.
 
     rwx : les droits du user considéré comme le "owner" du fichier. Ici, read, write, execute.
 
@@ -102,6 +102,7 @@
     Pré : pas de répertoire racine créé
     Post : un répertoire racine créé
     Test : se trouver dedans
+
     procedure initRacine (root: in out file);
 
 #### Raffinage
@@ -151,6 +152,7 @@
     Pré : current_file existe dans le sgf
     Post : le chemin absolu du fichier actuel est retourné
     Test : être en mesure de retourner l'adressse absolue d'un repertoire créé.
+
     function getCurrentPath(pwd_file : in P_file) return Unbounded_String;
 
 #### Raffinage
@@ -196,6 +198,7 @@
         - répertoire parent est bien un répertoire (file.rep_parent.all.isRepo = True)
     Post :
         - fichier fils bien créé et conforme à ce qui est demandé
+
     procedure createFile(nom_or_path : in String ; isRepo : in Boolean ; memoire : in out Mem);
 
 #### Raffinage
@@ -263,6 +266,7 @@
     Pré : le chemin est valide et mène à un répertoire existant
     Post : sgf.current_directory bien modifié
     Test : vérifier que le current_directory corresponde bien au répertoire concerné par le chemin
+
     procedure changeDirectory(path : in  String; current_directory: in out P_file)
 
 #### Raffinage
@@ -299,6 +303,7 @@
         Tout le contenu s'affiche
     Test :
         Vérification humaine que tout s'affiche à l'écran après l'appel de la procédure
+
     procedure displayFileContent(path_or_name_to_display : in String)
 
 #### Raffinage
@@ -359,6 +364,7 @@
     Pré : 
         - path_or_name_to_display pointe sur un fichier existant
     Post :
+
     procedure displayFileContentRecursive(path_or_name_to_display : in String; current_dir : P_file; indent : Natural := 0)
 
 #### Raffinage
@@ -425,4 +431,110 @@
 
 ### delete
 
-#### 
+#### Spécifications
+
+    Nom : delete
+    Objectifs : supprimer un fichier ou un répertoire
+    Paramètres :
+        - name_or_path : in String
+        - current_dir : in P_file
+        - memoire : in out Mem
+    Pré : 
+        - getPathValidity
+    Post :
+        - l'entité voulue est bien supprimée au bon endroit
+    Test 
+        - être en mesure de vérifier que l'entité supprimée n'existe plus
+
+    procedure delete (name_or_path: in String ; current_dir : P_file; memoire: in out Mem)
+
+#### Raffinage
+
+    R0 : supprimer un fichier ou un répertoire
+
+    R1 : Comment "supprimer un fichier ou un répertoire" ?
+
+    Targets <- Collect_Targets(name_or_path, current_dir)
+
+    Gérer le cas où Targets est vide
+
+    POUR CHAQUE Element DE Targets.all FAIRE
+        pointer_deleted <- Element
+        Gérer le cas où c'est un répertoire
+        Gérer le cas où c'est la racine
+        Gérer le reste
+
+    R2 : Comment "gérer le cas où Targets est vide" ?
+
+    SI Targets.Is_Empty ALORS
+        Ecrire("Erreur : Aucun fichier trouvé pour '" & name_or_path & "'")
+    FIN SI
+
+    R2 : Comment "gérer le cas où c'est un répertoire" ?
+
+    SI pointer_deleted.isRepo ALORS
+        Ecrire("Erreur : '" & To_String(pointer_deleted.nom) & "' est un dossier. Utilisez rmdir.")  
+
+    R2 : Comment "gérer le cas où c'est la racine" ?
+
+    SI pointer_deleted.rep_parent = null ALORS
+        Ecrire("Impossible de supprimer la racine.")
+
+    R2 : Comment "gérer le reste" ?
+
+        SINON
+            Target_Parent <- pointer_deleted.rep_parentC <- File_List_Pkg.Find(Container =>Target_ParentL_enfant.all, Item => pointer_deleted)
+            freeMem(memoire, pointer_deleted.adress, pointer_deleted.taille)
+
+            SI Has_Element(C) ALORS
+                Target_Parent.L_enfant.all.Delete(C)
+                Free(pointer_deleted);
+            FIN SI
+        FIN SI
+    FIN POUR
+
+## Affichage des fichiers et des répertoires du répertoire courant et de tous les fichiers et répertoires de tous les sous-répertoires (commande ls -r)
+
+### deleteDirectory
+
+#### Spécifications
+
+    Nom : deleteDirectory
+    Objectif : supprimer un répertoire contenant d'autres entités 
+    Paramètres :
+        - name_or_path : in String
+        - current_dir : P_file
+        - memoire : in out Mem
+    Pré :
+        - getExisting
+    Post : 
+        - l'entité voulue est bien supprimée au bon endroit, et ses enfants aussi
+    Test :
+        - être en mesure de vérifier que l'entité supprimée n'existe plus    
+
+    procedure deleteDirectory (name_or_path: in String ; current_dir : P_file; memoire : in out Mem)
+
+#### Raffinage
+
+    De la même manière que pour ls, deleteDirectory n'est que la version récursive de delete.
+
+## Déplacement et renommage éventuel d'un fichier (commande mv)
+
+### renameOrMove
+
+#### Spécifications
+
+    Nom : renameOrMove
+    Objectif : déplacer et éventuellement renommer un fichier
+    Paramètres :
+        - source_file : in String
+        - new_file : in String
+        - current_directory : in P_file
+        - memoire : in out Mem
+    Pré : 
+        - getExisting(source_file, current_directory)
+        - non getExisting(new_file, current_directory)
+    Post :
+    procedure renameOrMove(source_file : in String ; new_file : in String ; current_directory : in P_file ; memoire : in out Mem)
+
+## copie d'un fichier ou d'un répertoire 
