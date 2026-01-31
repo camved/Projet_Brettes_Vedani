@@ -13,6 +13,9 @@ package body memoire is
 
    function allocateMem(memoire : in out Mem; size : in Integer) return Integer is
 
+   pragma Assert (size > 0, "allocateMem: La taille demandée doit être strictement positive");
+   pragma Assert (size <= max_size, "allocateMem: Taille demandée supérieure à la capacité totale");
+
       current_block : P_block_available := memoire.first_Element; 
       previous      : P_block_available := null;
       new_adress : Integer;
