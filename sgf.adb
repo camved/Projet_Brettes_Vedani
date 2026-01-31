@@ -147,21 +147,22 @@ package body sgf is
 
    ---------- Root Initialization
 
-   procedure initRacine (root: in out file; memoire: in out Mem) is
+   procedure initRacine (root: in out P_file; memoire: in out Mem) is
       pointer_root : P_file;
       
    begin
 
-      pointer_root := new file;
-      pointer_root.nom := To_Unbounded_String("/");
-      pointer_root.droits_acces := sgf.current_user;
-      pointer_root.taille := 10; --Volume total divisé par 10Ko pour qu'on ne manie qu'une unité simple
-      pointer_root.rep_parent := null;
-      pointer_root.L_enfant := new File_List_Pkg.List;
-      pointer_root.isRepo := True;
-      pointer_root.adress := allocateMem(memoire, pointer_root.taille);
+      root := new file;
+      root.nom := To_Unbounded_String("/");
+      root.droits_acces := sgf.current_user;
+      root.taille := 10; --Volume total divisé par 10Ko pour qu'on ne manie qu'une unité simple
+      root.rep_parent := null;
+      root.L_enfant := new File_List_Pkg.List;
+      root.isRepo := True;
+      root.adress := allocateMem(memoire, pointer_root.taille);
 
-      root := pointer_root.all;
+      initMem(memoire);
+      root.adress := allocateMem(memoire, root.taille);
       current_directory := pointer_root;
       
    end initRacine;
@@ -1427,7 +1428,7 @@ end copyRepoFile;
    Arg1       : Unbounded_String;
    Arg2       : Unbounded_String;
    
-   Racine_SGF : SGF.file; 
+   Racine_SGF : SGF.P_file; 
    Dossier_Courant : SGF.P_file;
    memoire_SGF : Mem;
 

@@ -11,11 +11,12 @@ with Ada.Numerics.Discrete_Random;
 with Ada.Unchecked_Deallocation;
 with Ada.Exceptions;
 with GNAT.String_Split;     use GNAT.String_Split;
+
 package sgf is
 
 --SGF types
 
-   type file; --Déclaration partielle pour permettre le pointeur suivant
+   type file is private; --Déclaration partielle pour permettre le pointeur suivant
 
    type P_file is access file;
 
@@ -23,21 +24,10 @@ package sgf is
    use File_List_Pkg;
    type P_list is access File_List_Pkg.List;
 
-   type file is record
-
-      nom: unbounded_string;
-      droits_acces: unbounded_string;
-      taille: Integer;
-      rep_parent: P_file;
-      L_enfant: P_list;
-      isRepo: Boolean;
-      adress : Integer;
-
-   end record;
 
 --SGF elements
 
-   root: file;
+   root: P_file;
    current_directory: P_file;
    current_user: unbounded_string;
    memoire : Mem;
@@ -61,7 +51,7 @@ package sgf is
    --Pré : pas de répertoire racine créé
    --Post : un répertoire racine créé
    --Test : être en mesure de se déplacer dans le répertoire racine avec cd une fois le répertoire racine créé
-   procedure initRacine (root: in out file; memoire: in out Mem); 
+   procedure initRacine (root: in out P_file; memoire: in out Mem); 
 
    --Nom : createFile
    --Objectif : Créer un fichier dont on choisit le nom, les droits à l'endroit de notre choix.
@@ -489,4 +479,19 @@ package sgf is
    procedure editFile(path : in String; current_dir : in P_file; memoire : in out Mem);
 
    procedure terminal(current_directory : in out P_file; memoire : in out Mem);
+
+   private 
+
+   type file is record
+
+      nom: unbounded_string;
+      droits_acces: unbounded_string;
+      taille: Integer;
+      rep_parent: P_file;
+      L_enfant: P_list;
+      isRepo: Boolean;
+      adress : Integer;
+
+   end record;
+
 end sgf;

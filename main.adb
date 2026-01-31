@@ -4,7 +4,7 @@ with memoire;     use memoire;
 
 procedure Main is
    
-   Racine_SGF      : SGF.file;
+   Racine_SGF      : SGF.P_file;
    Dossier_Courant : SGF.P_file;
    Memoire_SGF     : Mem;
    Choix           : Character;
