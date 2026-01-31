@@ -155,7 +155,7 @@ package body sgf is
       root := new file;
       root.nom := To_Unbounded_String("/");
       root.droits_acces := sgf.current_user;
-      root.taille := 10; --Volume total divisé par 10Ko pour qu'on ne manie qu'une unité simple
+      root.taille := 10;
       root.rep_parent := null;
       root.L_enfant := new File_List_Pkg.List;
       root.isRepo := True;
@@ -168,8 +168,22 @@ package body sgf is
    end initRacine;
 
    ---------- Files and directories initialization/destruction
-      
+
+   function Invariant_SGF (current_root : P_file) return Boolean is
+   begin
+
+      return (current_root /= null and then 
+            To_String(current_root.nom) = "/" and then 
+            current_root.rep_parent = null);
+   end Invariant_SGF;
+         
    procedure createFile (nom_or_path: in String; isRepo : in Boolean; memoire : in out Mem) is
+
+      -- Précondition : le chemin ne doit pas être vide
+      pragma Assert (nom_or_path'Length > 0, "createFile: Le nom ne peut pas etre vide");
+      -- Précondition : la mémoire doit être initialisée
+      pragma Assert (memoire.first_Element /= null, "createFile: Memoire non initialisee");
+
       pointer_created : P_file;
       nom : Unbounded_String;
       
@@ -210,11 +224,18 @@ package body sgf is
             pointer_created.rep_parent.L_enfant.Append(pointer_created);
          end if;
 
+         pragma Assert (Invariant_SGF(findRoot(SGF.current_directory)), "Invariant rompu apres creation");
+
    end createFile;
 
    ----------
 
    procedure delete (name_or_path: in String ; current_dir : P_file; memoire: in out Mem) is
+      -- Précondition : current_dir ne doit pas être null
+      pragma Assert (current_dir /= null, "delete: Le repertoire courant n'existe pas");
+      -- Précondition : On ne peut pas supprimer un fichier sans nom 
+      pragma Assert (name_or_path'Length > 0, "delete: Le nom du fichier est vide");
+
       pointer_deleted : P_file; 
       Target_Parent : P_file; 
       C : File_List_Pkg.Cursor;
@@ -248,6 +269,8 @@ package body sgf is
          end if;
       end loop;
 
+      pragma Assert (Invariant_SGF(findRoot(SGF.current_directory)), "Invariant rompu apres deletion");
+
    end delete;
 
    ----------
@@ -274,8 +297,7 @@ package body sgf is
 
       -- Boucle sur les dossiers trouvés
       for Element of Targets.all loop
-         
-         -- On assigne l'élément courant à TA variable historique
+   
          deleted_to_be := Element;
 
          if not deleted_to_be.isRepo then
@@ -285,16 +307,14 @@ package body sgf is
             raise VOID_ROOT_LOCATION with "Deleting the root is not allowed in our programme.";
 
          else
-            -- VIDAGE RÉCURSIF (inchangé, sauf qu'on utilise ta boucle while)
+            -- VIDAGE RÉCURSIF
             while not deleted_to_be.L_enfant.all.Is_Empty loop
                
                child_ptr := deleted_to_be.L_enfant.all.First_Element;
                
                if child_ptr.isRepo then
-                  -- Appel récursif
                   deleteDirectory(To_String(child_ptr.nom), deleted_to_be,memoire); 
                else
-                  -- Appel delete fichier
                   delete(To_String(child_ptr.nom), deleted_to_be, memoire);
                end if;
             end loop;
@@ -321,6 +341,8 @@ package body sgf is
 
    function getChildren(adress_file : in P_file) return P_list is 
 
+   pragma Assert (adress_file /= null, "getChildren: L'objet cible ne peut pas etre null");
+
    begin
       if adress_file.all.L_enfant.Is_Empty then 
          return null;
@@ -333,6 +355,8 @@ package body sgf is
    ----------
 
    function findChild(children_list : in List; child_to_find : in String) return P_file is
+
+   pragma Assert (child_to_find'Length > 0, "findChild: Le nom recherche est vide");
 
    begin
       if children_list.Is_Empty then 
@@ -770,6 +794,8 @@ end extractParent;
          copyRepoFile(source_file, new_file, current_directory,memoire);
          delete(source_file, current_directory, memoire);
       end if;
+
+      pragma Assert (Invariant_SGF(findRoot(SGF.current_directory)), "Invariant rompu apres renameOrMove");
       
    end renameOrMove;
 
@@ -894,6 +920,10 @@ end extractParent;
    ---------- Preparation of SGF orders
 
    procedure changeDirectory(path : in String; current_directory : in out P_file) is
+
+   pragma Assert (current_directory /= null, "cd: Repertoire actuel invalide");
+   pragma Assert (path'Length > 0, "cd: Le chemin de destination est vide");
+
       destination : P_file;
    begin
       -- Utilisation de parsePath pour trouver le dossier cible
@@ -1022,6 +1052,10 @@ end extractParent;
    ----------   
 
    procedure copy(to_be_copied : in P_file; new_parent : in P_file; memoire :in out Mem ) is
+
+   pragma Assert (to_be_copied /= null, "copy: Source nulle");
+   pragma Assert (new_parent /= null, "copy: Destination nulle");
+   pragma Assert (new_parent.isRepo, "copy: La destination doit etre un dossier");
 
       current_temp : P_file := SGF.current_directory;
       temp: P_file;
