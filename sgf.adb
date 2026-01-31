@@ -31,7 +31,6 @@ package body sgf is
          if name(I) = '*' or name(I) = '?' then
             Resultat.Existe  := True;
             Resultat.Index   := I;
-            -- On pourrait stocker le pattern ici si besoin
             return Resultat;
          end if;
       end loop;
@@ -40,22 +39,18 @@ package body sgf is
 
    ----------
 
-   -- On garde uniquement Match_Pattern (la version propre et commentée)
    function Match_Pattern(FileName : String; Pattern : String) return Boolean is
    begin
-      -- CAS DE BASE : Fin du motif
       if Pattern'Length = 0 then
          return FileName'Length = 0;
       end if;
 
-      -- CAS 1 : Le motif commence par '*'
+      -- commence par '*'
       if Pattern(Pattern'First) = '*' then
-         -- Si '*' est le dernier char du motif, il matche tout
          if Pattern'Length = 1 then
             return True;
          end if;
          
-         -- Récursion : soit on consomme le *, soit on consomme un caractère du nom
          if Match_Pattern(FileName, Pattern(Pattern'First + 1 .. Pattern'Last)) then
             return True;
          elsif FileName'Length > 0 then
@@ -64,7 +59,7 @@ package body sgf is
              return False;
          end if;
 
-      -- CAS 2 : Le motif commence par '?'
+      -- commence par '?'
       elsif Pattern(Pattern'First) = '?' then
          if FileName'Length = 0 then
             return False;
@@ -73,7 +68,6 @@ package body sgf is
                                  Pattern(Pattern'First + 1 .. Pattern'Last));
          end if;
 
-      -- CAS 3 : Caractère standard
       else
          if FileName'Length > 0 and then FileName(FileName'First) = Pattern(Pattern'First) then
             return Match_Pattern(FileName(FileName'First + 1 .. FileName'Last), 
@@ -86,7 +80,6 @@ package body sgf is
 
    ----------
 
-   -- Correction du nom, ajout du return type, et utilisation de Match_Pattern
    function getRegexFiles (pattern : String; current_dir : P_file) return P_list is
       Matches_List : P_list := new File_List_Pkg.List;
       All_Children : P_list;
@@ -112,13 +105,13 @@ package body sgf is
       Pattern_Name : Unbounded_String;
       Simple_Target : P_file;
    begin
-      -- 1. Cas "ls" vide ou "." -> le dossier courant
+      -- ls ou pwd si pas d'arguments
       if Name_Or_Path = "" or Name_Or_Path = "." then
          Target_List.Append(Current_Dir);
          return Target_List;
       end if;
 
-      -- 2. On sépare le chemin (Où chercher ?) du nom/motif (Quoi chercher ?)
+      -- path
       if containsSlash(Name_Or_Path) then
          Parent_Dir   := extractParent(Name_Or_Path, Current_Dir);
          Pattern_Name := getName(Name_Or_Path);
@@ -129,12 +122,10 @@ package body sgf is
 
       if Parent_Dir = null then return Target_List; end if;
 
-      -- 3. C'est ici qu'on décide : Regex ou Nom Exact ?
+      -- contient des regex ?
       if containsRegex(To_String(Pattern_Name)).Existe then
-         -- C'est une Regex (*.txt) -> On récupère tout ce qui matche
          return getRegexFiles(To_String(Pattern_Name), Parent_Dir);
       else
--- BLOC CRITIQUE : Capturer l'exception levée par findChild
          begin
             Simple_Target := findChild(Parent_Dir.L_enfant.all, To_String(Pattern_Name));
             if Simple_Target /= null then
@@ -142,14 +133,12 @@ package body sgf is
             end if;
          exception
             when FILE_NOT_EXIST =>
-               -- On ignore l'exception ici pour renvoyer une liste vide
-               -- Cela permet à 'delete' de dire "Aucun fichier trouvé" proprement
                null;
          end;
          return Target_List;
       end if;
    exception
-      when others => return Target_List; -- En cas d'erreur, liste vide
+      when others => return Target_List; 
    end Collect_Targets;
 
    ---------- Root Initialization
@@ -281,18 +270,15 @@ package body sgf is
    ----------
 
    procedure deleteDirectory (name_or_path: in String ; current_dir : P_file; memoire : in out Mem) is
-      -- On garde tes noms de variables
+      
       target_parent : P_file;
       deleted_to_be : P_file;
       child_cursor : File_List_Pkg.Cursor;
       child_ptr : P_file;
-      
-      -- Variable nécessaire pour le Regex
       Targets : P_list;
       use File_List_Pkg; 
 
    begin
-      -- Récupération des dossiers cibles
       Targets := Collect_Targets(name_or_path, current_dir);
 
       if Targets.Is_Empty then
@@ -300,7 +286,6 @@ package body sgf is
          return;
       end if;
 
-      -- Boucle sur les dossiers trouvés
       for Element of Targets.all loop
    
          deleted_to_be := Element;
@@ -312,7 +297,6 @@ package body sgf is
             raise VOID_ROOT_LOCATION with "Deleting the root is not allowed in our programme.";
 
          else
-            -- VIDAGE RÉCURSIF
             while not deleted_to_be.L_enfant.all.Is_Empty loop
                
                child_ptr := deleted_to_be.L_enfant.all.First_Element;
@@ -324,7 +308,6 @@ package body sgf is
                end if;
             end loop;
 
-            -- SUPPRESSION DU DOSSIER LUI-MÊME
             freeMem(memoire, deleted_to_be.adress, deleted_to_be.taille);
 
             target_parent := deleted_to_be.rep_parent;
@@ -379,10 +362,9 @@ package body sgf is
    ----------
 
    procedure displayFile(current_directory : in P_file) is
-      use Ada.Containers; -- Pour Count_Type
+      use Ada.Containers;
    begin
       
-      -- 1. Sécurité
       if current_directory = null then
          Put_Line("Erreur : Le fichier à afficher est null.");
          return;
@@ -390,7 +372,6 @@ package body sgf is
 
       New_Line;
 
-      -- 2. Métadonnées
       Put("Type             : ");
       if current_directory.isRepo then
          Put_Line("d (Dossier)"); 
@@ -402,7 +383,6 @@ package body sgf is
       Put_Line("Size             : " & Integer'Image(current_directory.taille) & " o");
       Put_Line("File name        : " & To_String(current_directory.nom));
 
-      -- 3. Compteur
       Put("Sous répertoires : ");
       if current_directory.isRepo and then current_directory.L_enfant /= null then
          Put_Line(Count_Type'Image(current_directory.L_enfant.Length));
@@ -410,7 +390,6 @@ package body sgf is
          Put_Line("0 (Non applicable)");
       end if;
 
-      -- 4. Parent
       Put("Parent           : ");
       if current_directory.rep_parent /= null then
          if To_String(current_directory.rep_parent.nom) = "" then
@@ -424,7 +403,6 @@ package body sgf is
       
       New_Line;
 
-      -- 5. Liste des enfants
       if current_directory.isRepo then
          
          if current_directory.L_enfant = null or else current_directory.L_enfant.Is_Empty then
@@ -432,7 +410,6 @@ package body sgf is
          else
             Put_Line("   Contenu de " & (if To_String(current_directory.nom) = "" then "root" else To_String(current_directory.nom)) & " :");
             
-            -- La boucle "for ... of" déréférence automatiquement les éléments de la liste
             for child of current_directory.L_enfant.all loop
                if child /= null then
                   Put_Line("   - " & To_String(child.nom));
@@ -488,7 +465,7 @@ package body sgf is
 
    function parseAbsolute (fichier: in String; current_directory: in P_file) return P_file is
 
-      tempDir: P_file; --doit prendre la valeur de la racine au début
+      tempDir: P_file;
 
    begin
 
@@ -513,22 +490,17 @@ package body sgf is
    
    function  parseRelative (fichier: in String; current_directory: in P_file) return P_file is
 
-      First_Slash : Integer := 0; --permet de gérer l'avancée du découpage
+      First_Slash : Integer := 0; 
 
    begin
 
-      -- cas : fin de parcours 
-      if fichier'Length = 0 then -- VITAL POUR LA RECURSION
+      if fichier'Length = 0 then
          return current_directory;
       end if;
 
-      -- recherche du prochain /
-      -- instanciation avec de la généricité de la recherche du /
       First_Slash := Ada.Strings.Fixed.Index(Source => fichier, Pattern => "/");
 
-      -- découpage du segment actuel
       declare
-         --cette partie différencie les cas possibles et initialise des variables en fonction de la position du /
          Segment : constant String := (if First_Slash = 0 then (fichier) else (fichier(fichier'First .. First_Slash - 1)));
 
          Reste: constant String := (if First_Slash = 0 then "" else fichier(First_Slash+1.. fichier'Last));
@@ -552,8 +524,7 @@ package body sgf is
             -- cas : répertoire parent = ".."
             elsif Segment = ".." then
                if current_directory.rep_parent = null then 
-                  -- COMPORTEMENT LINUX : On est à la racine, ".." ne fait rien.
-                  -- On continue l'analyse du reste du chemin en restant ici.
+                  
                   return parseRelative(Reste, current_directory);
                else
                   -- Cas normal : on monte au parent
@@ -612,39 +583,32 @@ function extractParent (fichier : in String; current_directory : in P_file) retu
 
    Last_Slash : Integer;
 
-begin
-
-   -- Cas particuliers simples
-   if fichier = "/" then 
-      return findRoot(current_directory); 
-   end if;
-
-   if fichier = "." or fichier = ".." then 
-      return parsePath(fichier & "/..", current_directory); 
-   end if;
-
-   -- Trouver le dernier slash
-   Last_Slash := Ada.Strings.Fixed.Index(fichier, "/", Ada.Strings.Backward);
-
-   -- Aucun slash : le parent est le répertoire courant
-   if Last_Slash = 0 then
-      return current_directory;
-   end if;
-
-   -- Slash à la fin (ex: "dir/"), on l'ignore et on recommence
-   if Last_Slash = fichier'Last then
-      return extractParent(fichier(fichier'First .. Last_Slash - 1), current_directory);
-   end if;
-
-   -- Cas général : extraire la partie dossier
-   declare
-      Path_Part : constant String := fichier(fichier'First .. Last_Slash - 1);
-      -- Si le chemin était "/file", Path_Part est vide, donc on vise "/"
-      Target : constant String := (if Path_Part = "" then "/" else Path_Part);
    begin
-      return parsePath(Target, current_directory);
-   end;
-end extractParent;
+
+      if fichier = "/" then 
+         return findRoot(current_directory); 
+      end if;
+
+      if fichier = "." or fichier = ".." then 
+         return parsePath(fichier & "/..", current_directory); 
+      end if;
+
+      Last_Slash := Ada.Strings.Fixed.Index(fichier, "/", Ada.Strings.Backward);
+
+      if Last_Slash = 0 then
+         return current_directory;
+      end if;
+      if Last_Slash = fichier'Last then
+         return extractParent(fichier(fichier'First .. Last_Slash - 1), current_directory);
+      end if;
+
+      declare
+         Path_Part : constant String := fichier(fichier'First .. Last_Slash - 1);
+         Target : constant String := (if Path_Part = "" then "/" else Path_Part);
+      begin
+         return parsePath(Target, current_directory);
+      end;
+   end extractParent;
 
    ----------
 
@@ -719,18 +683,16 @@ end extractParent;
       segment_count : Integer := 0;
 
    begin
-      -- 1. Vérification de la taille
       if path'Length = 0 then
          return False;
       end if;
 
-      -- 2. Vérification des caractères et des doubles slashes
       for i in path'Range loop
          if not isValidChar(path(i)) then
             return False;
          end if;
          
-         -- Interdiction de "//" pour éviter les segments vides ambigus
+         -- Interdiction de "//"
          if i < path'Last and then path(i) = '/' and then path(i+1) = '/' then
             return False;
          end if;
@@ -756,16 +718,11 @@ end extractParent;
             -- Extraction du segment
             segment : constant String := path(start .. finish - 1);
          begin
-            -- On autorise "." et ".." partout, donc pas de vérification de position.
             
-            -- Seule restriction sur le contenu du segment :
-            -- Interdiction des segments constitués uniquement de "-" ou "_"
             if segment = "-" or segment = "_" then
                return False;
             end if;
             
-            -- Note : Les fichiers cachés (ex: ".bashrc") ou les noms 
-            -- contenant ces caractères (ex: "my-file_1") sont autorisés.
          end; 
 
          start := finish + 1;
@@ -784,25 +741,16 @@ end extractParent;
 
 
    begin
-      -- 1. On trouve l'objet à déplacer (la source doit exister)
       P_source := parsePath(source_file, current_directory);
-      
-      -- 2. On trouve le dossier de destination (le parent doit exister)
       P_Dest_Parent := extractParent(new_file, current_directory);
-
-      -- 3. Sécurités
       if P_source = null or P_Dest_Parent = null then
          Put_Line("Erreur : Source ou dossier de destination introuvable.");
          return;
       end if;
 
-      -- 4. ACTION
-      -- Si on est dans le même dossier, on renomme juste
       if extractParent(source_file, current_directory) = P_Dest_Parent then
          P_source.nom := To_Unbounded_String(New_Name);
       else
-         -- Si on change de dossier, on utilise ta logique de copie/suppression
-         -- Mais attention : copyRepoFile doit être adaptée aussi !
          copyRepoFile(source_file, new_file, current_directory,memoire);
          delete(source_file, current_directory, memoire);
       end if;
@@ -842,7 +790,6 @@ end extractParent;
 
    begin
 
-      -- On accepte si le parent est trouvé ET que le fichier n'existe PAS encore
       exit when Parent_Ok and not Exists;
       
       if not Parent_Ok then
@@ -930,10 +877,8 @@ end extractParent;
       target : P_file;
       added_size : Integer;
    begin
-      -- C'est ICI qu'on utilise parsePath, comme pour cd ou ls
       target := parsePath(path, current_dir);
 
-      -- Vérifications
       if target = null then
          Put_Line("Erreur : Fichier introuvable.");
          return;
@@ -942,7 +887,6 @@ end extractParent;
          return;
       end if;
 
-      -- Action
       added_size := nvimSimulator;
       changeSize(target, added_size);
       
@@ -960,7 +904,6 @@ end extractParent;
 
       destination : P_file;
    begin
-      -- Utilisation de parsePath pour trouver le dossier cible
       destination := parsePath(path, current_directory);
 
       if destination /= null and then destination.isRepo then
@@ -994,25 +937,20 @@ end extractParent;
       to_display : P_file;
       list_ptr   : P_list;
    begin
-      -- On cherche directement l'objet visé par le chemin
       to_display := parsePath(path_or_name_to_display, SGF.current_directory);
 
-      -- Cas : si le chemin n'existe pas
       if to_display = null then
          Put_Line("Error: Path not found.");
          return;
       end if;
 
-      -- Cas : si c'est un fichier et non un répertoire
       if not to_display.isRepo then
          Put_Line("Content: " & To_String(to_display.nom));
          return;
       end if;
 
-      -- Récupération de la liste des enfants
       list_ptr := getChildren(to_display);
 
-      -- Affichage sécurisé
       if list_ptr /= null and then not list_ptr.all.Is_Empty then
          for child of list_ptr.all loop
             Put_Line(To_String(child.nom));
@@ -1032,11 +970,9 @@ end extractParent;
 
    begin
 
-      -- CAS SPECIAL : Si le chemin est "." ou vide, c'est le dossier courant lui-même
       if path_or_name_to_display = "." or path_or_name_to_display = "" then
          to_display := current_dir;
 
-      --SINON : On cherche le fichier/dossier demandé
       elsif containsSlash (path_or_name_to_display) then 
          current_parent := extractParent(path_or_name_to_display, current_dir);
          children_list_ancestor := getChildren(current_parent);
@@ -1047,35 +983,26 @@ end extractParent;
          to_display := findChild(children_list_ancestor.all, path_or_name_to_display);
       end if;
 
-      --Si introuvable, on sort
       if to_display = null then
          return;
       end if;
 
-      --Affichage et récursion
       if not to_display.isRepo then 
-         -- C'est un fichier
          Put_Line(indent_str & "|-- [F] " & To_String(to_display.nom));
       
       elsif to_display.isRepo and then to_display.L_enfant.all.Is_Empty then 
-         -- C'est un dossier vide
          Put_Line(indent_str & "|-- [D] " & To_String(to_display.nom) & " (Vide)");
 
       else
-         -- C'est un dossier avec du contenu
-         -- On n'affiche le nom que si ce n'est pas le point de départ "." (pour éviter une ligne moche au début)
          if path_or_name_to_display /= "." then
              Put_Line(indent_str & "|-- [D] " & To_String(to_display.nom));
          end if;
          
          for Child_File of getChildren(to_display).all loop
             
-            -- ASTUCE : Pour la récursion, on change le contexte.
-            -- Le "current_dir" devient le dossier qu'on est en train de visiter (to_display)
-            -- Et on demande d'afficher l'enfant par son nom simple.
             displayFileContentRecursive(
                To_String(Child_File.nom), 
-               to_display,    -- Le dossier actuel devient la référence pour l'enfant
+               to_display,    
                indent + 4
             );
          end loop;
@@ -1110,13 +1037,10 @@ end extractParent;
    procedure Copy_Recursive(Src : P_file; Dest : P_file ; memoire : in out Mem) is
       New_Node : P_file;
    begin
-      -- Copie du fichier/dossier lui-même
       copy(Src, Dest, memoire);
       
-      -- Si c'est un dossier non vide, on copie les enfants
       if Src.isRepo and then not Src.L_enfant.all.Is_Empty then
          
-         -- On retrouve le nouveau dossier créé dans la destination
          New_Node := findChild(Dest.L_enfant.all, To_String(Src.nom));
          
          if New_Node /= null then
@@ -1133,9 +1057,8 @@ procedure copyRepoFile(copied_name_or_path : in String; path : in String; curren
    future_parent_dir  : P_file;
    to_be_copied       : P_file;
    Source_List        : P_list;
-   New_Name           : constant String := To_string(getName(path)); -- On extrait "file2"
+   New_Name           : constant String := To_string(getName(path)); 
 begin
-   -- 1. On cherche le PARENT de la destination (ex: la racine pour "../file2")
    future_parent_dir := extractParent(path, current_dir);
    
    if future_parent_dir = null then
@@ -1148,7 +1071,6 @@ begin
        return;
    end if;
 
-   -- 2. On cherche la source
    Source_List := Collect_Targets(copied_name_or_path, current_dir);
 
    if Source_List.Is_Empty then
@@ -1156,20 +1078,13 @@ begin
       return;
    end if;
 
-   -- 3. On effectue la copie
    for Element of Source_List.all loop
       to_be_copied := Element;
       
       if to_be_copied = future_parent_dir then
          Put_Line("Erreur : Impossible de copier le dossier dans lui-même.");
       else
-         -- ATTENTION : Ton Copy_Recursive doit probablement être adapté 
-         -- pour prendre en compte le nouveau nom "New_Name" 
-         -- sinon il gardera le nom "file1" dans le nouveau dossier.
          Copy_Recursive(to_be_copied, future_parent_dir, memoire);
-         
-         -- ASTUCE : Une fois copié, on change le nom du dernier enfant ajouté
-         -- pour qu'il s'appelle "file2" et non plus "file1"
          future_parent_dir.L_enfant.Last_Element.nom := To_Unbounded_String(New_Name);
       end if;
    end loop;

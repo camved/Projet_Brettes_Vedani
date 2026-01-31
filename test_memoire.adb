@@ -1,5 +1,6 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with memoire;     use memoire;
+with Ada.Assertions; use Ada.Assertions;
 
 procedure Test_Memoire is
    M : Mem;
@@ -25,7 +26,6 @@ begin
    Afficher_Memoire(M);
 
    -- 3. Libération simple (sans fusion immédiate si au milieu)
-   -- On libère le bloc du milieu (Addr2, taille 50)
    Put_Line(">>> Libération de Addr2 (Taille 50)");
    freeMem(M, Addr2, 50);
    Afficher_Memoire(M);
@@ -37,27 +37,27 @@ begin
    Afficher_Memoire(M);
 
    -- 5. Test de saturation
-   Put_Line(">>> Tentative de saturation (Allocation grosse taille)");
+Put_Line(">>> Tentative de saturation (Allocation grosse taille)");
    declare
       Big_Addr : Integer;
    begin
-      -- Supposons que max_size est grand, on essaye de tout prendre
-      -- Ajuste la valeur ci-dessous selon ton 'max_size' défini dans le package
-      Big_Addr := allocateMem(M, 2000000000); 
+
+      Big_Addr := allocateMem(M, 1073741825);
    exception
       when Erreur_Disque_Plein =>
-         Put_Line("   [SUCCES] Exception Erreur_Disque_Plein levée correctement.");
+         Put_Line("   [SUCCES] Exception Erreur_Disque_Plein levée.");
+      when Ada.Assertions.Assertion_Error =>
+         Put_Line("   [SUCCES] Assertion de sécurité levée (Taille > max_size).");
    end;
 
    -- 6. Test de fusion (Coalescence)
-   -- On nettoie un peu
    initMem(M); 
-   Addr1 := allocateMem(M, 10); -- Bloc 1
-   Addr2 := allocateMem(M, 10); -- Bloc 2
-   Addr3 := allocateMem(M, 10); -- Bloc 3
+   Addr1 := allocateMem(M, 10);
+   Addr2 := allocateMem(M, 10);
+   Addr3 := allocateMem(M, 10);
    
    Put_Line(">>> Préparation fusion : 3 blocs alloués.");
-   Afficher_Memoire(M); -- Le reste est libre
+   Afficher_Memoire(M);
    
    Put_Line(">>> Libération Bloc 1 et Bloc 3 (trous non contigus)");
    freeMem(M, Addr1, 10);

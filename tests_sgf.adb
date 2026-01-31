@@ -23,22 +23,18 @@ procedure Tests_SGF is
 
 begin
 
-   ---------------------------------------------------------
-   -- 1. Test de l'initialisation (La Racine)
-   ---------------------------------------------------------
+
    Put_Line("--- 1. Test Initialisation Racine ---");
    SGF.initRacine(Ma_Racine, Ma_Memoire);
    
    Assert(Ma_Racine /= null, "Racine bien allouee");
-   -- CORRECTION : Appel fonctionnel au lieu de notation pointée
    Assert(SGF.getFileName(Ma_Racine) = "/", "Nom de la racine correct");
    Assert(SGF.getParent(Ma_Racine) = null, "Parent de la racine est null");
    Assert(SGF.isDirectory("/", Ma_Racine) = True, "La racine est un repertoire");
    New_Line;
 
-   ---------------------------------------------------------
-   -- 2. Test de création de Fichier et Dossier
-   ---------------------------------------------------------
+   --------
+
    Put_Line("--- 2. Test Creation Fichier et Dossier ---");
    SGF.createFile("file1", False, Ma_Memoire); 
    SGF.createFile("Dossier1", True, Ma_Memoire);
@@ -48,9 +44,8 @@ begin
    Assert(SGF.findChild(Liste_Enfants.all, "Dossier1") /= null, "Dossier 'Dossier1' cree");
    New_Line;
 
-   ---------------------------------------------------------
-   -- 3. Test de suppression (delete)
-   ---------------------------------------------------------
+   --------
+
    Put_Line("--- 3. Test Suppression (rm) ---");
    SGF.createFile("a_supprimer", False, Ma_Memoire);
    Assert(SGF.getExisting("a_supprimer", SGF.getCurrentDirectory), "Fichier existe avant suppression");
@@ -59,9 +54,8 @@ begin
    Assert(not SGF.getExisting("a_supprimer", SGF.getCurrentDirectory), "Fichier bien supprime");
    New_Line;
 
-   ---------------------------------------------------------
-   -- 5. Test des Expressions Régulières (Regex)
-   ---------------------------------------------------------
+   --------
+
    Put_Line("--- 5. Test Match_Pattern (Regex) ---");
    Assert(SGF.Match_Pattern("test.txt", "*.txt"), "Match *.txt fonctionne");
    Assert(not SGF.Match_Pattern("test.exe", "*.txt"), "Non-match fonctionne");
@@ -70,19 +64,16 @@ begin
    declare
       Resultats : SGF.P_list := SGF.getRegexFiles("*.sh", SGF.getCurrentDirectory);
    begin
-      -- Utilisation de l'API de liste au lieu de .is_empty si privé
       Assert(not Resultats.Is_Empty, "getRegexFiles a trouve le fichier .sh");
    end;
    New_Line;
 
-   ---------------------------------------------------------
-   -- 6. Test de la Taille et Mémoire (changeSize)
-   ---------------------------------------------------------
+   --------
+
    Put_Line("--- 6. Test changeSize et Memoire ---");
    Enfant_Test := SGF.findChild(SGF.getChildren(SGF.getCurrentDirectory).all, "file1");
    if Enfant_Test /= null then
       declare
-         -- CORRECTION : Utilisation du getter public
          Ancienne_Taille : Integer := SGF.getFileSize(Enfant_Test);
       begin
          SGF.changeSize(Enfant_Test, 50);
@@ -91,11 +82,9 @@ begin
    end if;
    New_Line;
 
-   ---------------------------------------------------------
-   -- 7. Test de Navigation (cd) et Path
-   ---------------------------------------------------------
+   --------
+   
    Put_Line("--- 7. Test CD et PWD ---");
-   -- Utilisation du répertoire courant pour le cd
    Current_Dir := SGF.getCurrentDirectory;
    SGF.changeDirectory("Dossier1", Current_Dir); 
    Assert(To_String(SGF.getCurrentPath(Current_Dir)) = "/Dossier1", "Chemin actuel correct");
