@@ -66,6 +66,15 @@ package sgf is
       -- fichier fils bien créé et conforme à ce qui est demandé
    procedure createFile (nom_or_path: in String; isRepo : in Boolean; memoire : in out Mem);
 
+   -- Retourne le nom d'un objet file
+   function getFileName(F : in P_file) return String;
+
+   -- Retourne la taille d'un objet file
+   function getFileSize(F : in P_file) return Integer;
+
+   -- Retourne le pointeur vers le répertoire parent
+   function getParent(F : in P_file) return P_file;
+
    --Nom : delete (~rm)
    --Objectif : supprimer un fichier ou un répertoire
    --Paramètres : 

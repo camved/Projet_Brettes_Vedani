@@ -134,11 +134,18 @@ package body sgf is
          -- C'est une Regex (*.txt) -> On récupère tout ce qui matche
          return getRegexFiles(To_String(Pattern_Name), Parent_Dir);
       else
-         -- C'est un nom simple -> On cherche juste ce fichier
-         Simple_Target := findChild(Parent_Dir.L_enfant.all, To_String(Pattern_Name));
-         if Simple_Target /= null then
-            Target_List.Append(Simple_Target);
-         end if;
+-- BLOC CRITIQUE : Capturer l'exception levée par findChild
+         begin
+            Simple_Target := findChild(Parent_Dir.L_enfant.all, To_String(Pattern_Name));
+            if Simple_Target /= null then
+               Target_List.Append(Simple_Target);
+            end if;
+         exception
+            when FILE_NOT_EXIST =>
+               -- On ignore l'exception ici pour renvoyer une liste vide
+               -- Cela permet à 'delete' de dire "Aucun fichier trouvé" proprement
+               null;
+         end;
          return Target_List;
       end if;
    exception
@@ -159,11 +166,9 @@ package body sgf is
       root.rep_parent := null;
       root.L_enfant := new File_List_Pkg.List;
       root.isRepo := True;
-      root.adress := allocateMem(memoire, pointer_root.taille);
-
       initMem(memoire);
       root.adress := allocateMem(memoire, root.taille);
-      current_directory := pointer_root;
+      sgf.current_directory := root;
       
    end initRacine;
 
@@ -558,17 +563,24 @@ package body sgf is
             -- cas général
             else
 
-               Prochain := findChild(current_directory.L_enfant.all, Segment);
+               begin
+                  Prochain := findChild(current_directory.L_enfant.all, Segment);
+               exception
+                  when FILE_NOT_EXIST =>
+                     -- Si un morceau du chemin n'existe pas, on retourne null 
+                     -- au lieu de faire planter tout le programme.
+                     return null;
+               end;
 
                if Prochain = null then
-                  raise VOID_INVALID_PATH;
+                  return null;
                elsif Reste /= "" and then not Prochain.isRepo then
                   raise VOID_INVALID_PATH with "Pas un répertoire.";
                else
                   return parseRelative(Reste, Prochain);
                end if;
-            end if;
-         end;
+         end if;
+      end;
 
    end parseRelative;
    
@@ -857,6 +869,28 @@ end extractParent;
       return parsePath(path, current_directory).isRepo;
 
    end isDirectory;
+
+   ----------
+
+   function getFileName(F : in P_file) return String is
+   begin
+      return To_String(F.nom);
+   end getFileName;
+
+   ----------
+
+   function getFileSize(F : in P_file) return Integer is
+   begin
+      return F.taille;
+   end getFileSize;
+
+   
+   ----------
+   
+   function getParent(F : in P_file) return P_file is
+   begin
+      return F.rep_parent;
+   end getParent;
 
    ----------
 
