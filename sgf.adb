@@ -1459,6 +1459,7 @@ end copyRepoFile;
       New_Line;
 
       loop
+      begin
          Put(To_String(SGF.getCurrentPath(SGF.getCurrentDirectory)) & " > ");
          
          Input_Line := To_Unbounded_String(Get_Line);
@@ -1565,9 +1566,28 @@ end copyRepoFile;
             Put_Line("Commande inconnue : " & To_String(Command));
          end if;
 
-      end loop;
+         exception
+         when VOID_NOT_OWNER =>
+            New_Line;
+            Put_Line("You are not the owner of this file. Action denied.");
+            New_Line;
+         when VOID_INVALID_PATH =>
+            New_Line;
+            Put_Line("This path is invalid. Try again.");
+            New_Line;
+         when VOID_ROOT_LOCATION =>
+            New_Line;
+            Put_Line("The user tried to access the root unaccordingly.");
+            New_Line;
+         when E : others =>
+            Put_Line("Critical error: " & Ada.Exceptions.Exception_Name(E));
+            Put_Line("Message: " & Ada.Exceptions.Exception_Message(E));
+      end;
+   end loop;
 
-   end terminal;
+   Put_Line("Leaving fedoRAPTOR terminal...");
+
+end terminal;
 
    --------
 
