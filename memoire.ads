@@ -16,7 +16,7 @@ package memoire is
       p_next : P_block_available; 
    end record;
 
-   max_size  : Integer := 1073741824; -- 1 To en Ko
+   max_size  : Integer := 1073741824; --  1 To en Ko
 
    Erreur_Disque_Plein : Exception;
 

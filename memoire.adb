@@ -55,20 +55,19 @@ package body memoire is
       new_block : P_block_available;
 
    begin
-      -- 1. Trouver l'emplacement
+      --Trouver l'emplacement
       while current /= null and then current.first_bit < Address loop
          previous := current;
          current  := current.p_next;
       end loop;
 
-      -- 2. Essayer de fusionner avec le PRECEDENT (Gauche)
+      -- Essayer de fusionner avec le précédent (Gauche)
       if previous /= null and then 
          (previous.first_bit + previous.size = address) 
       then
-         -- On agrandit le précédent tout de suite !
          previous.size := previous.size + size;
 
-         -- Maintenant, on regarde si ce précédent agrandi touche le SUIVANT (Droite)
+         -- Maintenant, on regarde si ce précédent agrandi touche le suivant (Droite)
          if current /= null and then 
             (previous.first_bit + previous.size = current.first_bit) then
             
@@ -78,11 +77,10 @@ package body memoire is
             Free(current);                                 
          end if;
          
-         return; -- Travail terminé
+         return; 
       end if;
 
-      -- 3. Essayer de fusionner avec le SUIVANT (Droite) seulement
-      -- (Si on arrive ici, c'est qu'on n'a pas fusionné avec le précédent)
+      --  Essayer de fusionner avec le suivant (Droite) seulement
       if current /= null and then 
          (Address + Size = current.first_bit) then
          
@@ -92,7 +90,6 @@ package body memoire is
          return;
       end if;
 
-      -- 4. Pas de fusion possible : Insertion d'un nouveau bloc
       new_block := new Block_available'(first_bit => Address, 
                                        size            => Size, 
                                        p_next         => current); 

@@ -15,8 +15,6 @@ begin
    
    Dossier_Courant := SGF.getCurrentDirectory;
 
-   SGF.switchUser;
-
    loop
       New_Line;
       Put_Line("1. Terminal (fedoRAPTOR)");
@@ -29,9 +27,11 @@ begin
 
       case Choix is
          when '1' =>
+            SGF.switchUser;
             SGF.Terminal(Dossier_Courant, Memoire_SGF);
             
          when '2' =>
+            SGF.switchUser;
             SGF.interactiveMenu(Dossier_Courant, Memoire_SGF);
             
          when '3' => 
